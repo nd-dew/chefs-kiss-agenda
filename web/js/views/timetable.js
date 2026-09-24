@@ -10,7 +10,7 @@ import { isFiltering, state } from '../state.js';
 import { affTag, hl, starBtn, statusCls } from './parts.js';
 
 const SLOT = 30; // minutes
-export const SCALE = { busy: 5.2, idle: 1.2 }; // px per minute
+export const SCALE = { busy: 5.2, idle: 0.45 }; // px per minute (idle = no talks, e.g. lunch)
 const ROW = { label: 15, lane: 90, gap: 4 }; // px
 
 /** Half-hour slots of the day that contain at least one talk (plenaries don't count). */
@@ -144,11 +144,18 @@ function grid({ columns, bands, start, end, busy, n, anchor, width, before = [],
 
   let ruler = '';
   let lines = '';
+  const nowX = n.date === state.day && n.min >= start && n.min <= end ? x(n.min) : null;
+  let lastLabel = -Infinity;
   for (let m = start; m <= end; m += SLOT) {
     const half = m % 60 !== 0;
     if (half && m !== start && x.idle(m - SLOT)) continue;
     if (m > start && m < end) lines += `<div class="tth-line${half ? ' half' : ''}" style="left:${x(m)}px"></div>`;
-    if (m < end) ruler += `<span class="tth-hour${half ? ' half' : ''}" style="left:${x(m)}px">${hhmm(m)}</span>`;
+    // Skip labels that would collide with the previous one (squeezed lunch) or with the now-tag.
+    const crowded = x(m) - lastLabel < 40 || (nowX != null && Math.abs(x(m) - nowX) < 44);
+    if (m < end && !crowded) {
+      ruler += `<span class="tth-hour${half ? ' half' : ''}" style="left:${x(m)}px">${hhmm(m)}</span>`;
+      lastLabel = x(m);
+    }
   }
   for (let m = start; m < end; m += SLOT) {
     if (x.idle(m)) lines += `<div class="tth-squeeze" style="left:${x(m)}px;width:${x(m + SLOT) - x(m)}px"></div>`;

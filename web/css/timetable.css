@@ -89,12 +89,14 @@
 .ev.h .ev-title { font-size: 13px; line-height: 1.28; -webkit-line-clamp: 3; padding-right: 18px; }
 .ev.h .ev-sub { font-size: 11px; margin-top: auto; }
 .ev.plen.h {
-  top: 0; bottom: 0; height: auto; right: auto; border-radius: 0; padding: 30px 0 0; align-items: center; justify-content: flex-start;
+  z-index: 3; /* above the sticky room labels */
+  top: 0; bottom: 0; height: auto; right: auto; border-radius: 0; padding: 12px 0 0; align-items: center; justify-content: flex-start;
   box-shadow: inset 1px 0 0 var(--border), inset -1px 0 0 var(--border);
 }
 .ev.plen.h .ev-title {
   position: sticky; top: 36px; left: auto; writing-mode: vertical-rl; transform: rotate(180deg);
-  -webkit-line-clamp: unset; max-width: none; max-height: 70vh; padding: 10px 3px; white-space: nowrap;
+  -webkit-line-clamp: unset; max-width: none; max-height: 70vh; padding: 8px 2px; white-space: nowrap;
+  font-size: 10.5px; background: none; box-shadow: none; color: var(--faint);
 }
 .ev.plen.h .ev-title span { margin: 0 0 6px; }
 
