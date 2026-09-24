@@ -114,3 +114,4 @@
 .plen-chip span { color: var(--faint); font-variant-numeric: tabular-nums; }
 .plen-chip.is-past { opacity: .55; }
 .plen-chip.is-live { border-color: var(--now); }
+@container app (max-width: 700px) { .tth-extra { display: none; } } /* phones: keep only the talks */

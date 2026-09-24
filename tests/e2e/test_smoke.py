@@ -195,8 +195,7 @@ def test_phone_grid_skips_empty_morning_and_evening(phone):
     phone.evaluate("document.querySelector('#main').scrollTo(0, 0)")
     first_hour = phone.locator('.tth-hour').first.inner_text()
     assert first_hour == '11:30'  # Thursday's first talks, not the 07:30 welcome
-    chips = phone.locator('.plen-chip').all_inner_texts()
-    assert any('Keynote' in c for c in chips) and any('Concert' in c for c in chips)
+    assert not phone.locator('.tth-extra').is_visible()  # no before/after plenary chips on phones
 
 
 def test_other_day_opens_at_its_start(browser, server):
