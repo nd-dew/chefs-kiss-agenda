@@ -206,7 +206,8 @@ function horizontal({ columns, bands, start, end, busy, n, anchor }) {
     return `<article class="${bandCls(t, n)} h" data-id="${t.id}" tabindex="0" style="left:${x(s) + 1}px;width:${x(e) - x(s) - 2}px">${bandTitle(t)}</article>`;
   }).join('');
 
-  return `<div class="tth" style="width:${width + 24}px">
+  // Extra width so a late "now" can still scroll to the left edge.
+  return `<div class="tth" style="width:calc(${width + 24}px + 60vw)">
       <div class="tth-ruler">${ruler}</div>
       <div class="tth-body" style="height:${top}px">
         <div class="tth-grid">${lines}</div>${plen}${rows}

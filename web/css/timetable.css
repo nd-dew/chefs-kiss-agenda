@@ -6,6 +6,7 @@
   grid-template-rows: auto auto;
   min-width: calc(var(--gutter) + var(--cols) * var(--colw));
   position: relative;
+  margin-bottom: 45vh; /* room to scroll "now" to the top even late in the day */
 }
 .tt-corner, .tt-room {
   position: sticky; top: 0; z-index: 6;

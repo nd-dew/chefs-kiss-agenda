@@ -1,6 +1,6 @@
 /* List view */
 
-.list { max-width: 2200px; margin: 0 auto; padding: 8px 24px 64px; }
+.list { max-width: 2200px; margin: 0 auto; padding: 8px 24px 60vh; } /* bottom room so the last slots can reach the top */
 .slot { margin-top: 10px; }
 .slot-h {
   position: sticky; top: 0; z-index: 4;

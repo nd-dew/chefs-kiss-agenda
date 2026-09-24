@@ -75,10 +75,11 @@ function scrollToNow(instant = false) {
   const anchor = $('.tt-anchor', main);
   if (state.view === 'mine' || state.q.trim()) return main.scrollTo({ top: 0, left: 0, behavior });
   if (anchor) return anchor.classList.contains('h') ? to(anchor, { dx: 48, dy: null }) : to(anchor, { dx: null, dy: 110 });
+  // The latest time slot that has started: the current talks today, the same time of day elsewhere.
+  // (Not "the first live slot": a long session that began at 14:00 is still live at 17:50.)
   const minute = anchorMinute(db.byDay.get(state.day) || [], now());
   const slots = [...main.querySelectorAll('.slot')];
-  // Today: what's live; other days: the talks running at this time of day.
-  const slot = $('.slot[data-live]', main) || slots.findLast(s => +s.dataset.slot <= minute) || slots[0];
+  const slot = slots.findLast(s => +s.dataset.slot <= minute) || slots[0];
   if (slot) to(slot, { dx: null, dy: 6 });
 }
 
@@ -354,7 +355,13 @@ async function boot() {
   }
   loadFavs();
   readHash();
+  // Opening the app always lands on "now": today during the event, without a stale search.
+  // (The URL still carries view and filters, so a refresh keeps those.)
+  const today = now().date;
+  if (db.days.some(d => d.date === today)) state.day = today;
   state.day ||= defaultDay();
+  state.q = '';
+  if (state.view === 'mine') state.view = state.lastView;
   state.view ||= 'list';
   if (state.view !== 'mine') state.lastView = state.view;
   search.value = state.q;

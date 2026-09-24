@@ -170,3 +170,22 @@ def test_filter_change_animates_tiles(page):
     page.click('[data-menu=filters]')
     page.click('[data-chip="tracks|ai"]')
     assert page.evaluate('document.getAnimations().length') > 0
+
+
+def test_opening_lands_on_now_even_with_a_stale_url(browser, server):
+    """17:50: a long session that started at 14:00 is still live; the list must show the 17:30 talks."""
+    context = browser.new_context(viewport={'width': 1440, 'height': 900})
+    page = context.new_page()
+    page.goto(server + '/?now=2026-09-24T17:50#day=2026-09-26&view=list&q=payroll')
+    page.wait_for_selector('.slot')
+    assert page.locator('.day[aria-selected="true"]').inner_text().strip() == 'Thu 24'
+    assert page.locator('.results').count() == 0
+    first_visible = page.evaluate(
+        """(() => {
+          const top = document.querySelector('#main').getBoundingClientRect().top;
+          const slots = [...document.querySelectorAll('.slot')];
+          return slots.find(s => s.getBoundingClientRect().top >= top - 8).dataset.slot;
+        })()"""
+    )
+    assert first_visible == str(17 * 60 + 30)
+    context.close()
