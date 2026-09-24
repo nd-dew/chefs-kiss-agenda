@@ -43,7 +43,7 @@ def test_health_reports_ai_status(server, server_without_key):
 def test_chat_streams_events_and_sends_grounded_prompt(server, fake_gemini):
     status, raw = post_chat(server, {'messages': [{'role': 'user', 'content': 'AI talks?'}], 'context': 'Now: 14:10'})
     assert status == 200
-    assert events(raw) == [{'t': 'Try '}, {'t': '[[s0]] and [[s5]].'}, {'done': True}]
+    assert events(raw) == [{'t': 'Try '}, {'t': '[[s20]] and [[s25]].'}, {'done': True}]
     payload = fake_gemini[0]
     assert 'SESSION CATALOG' in payload['systemInstruction']['parts'][0]['text']
     assert payload['contents'][-1]['parts'][0]['text'].startswith('[App context]')

@@ -34,7 +34,7 @@ export const state = {
 // ---------------------------------------------------------------- saved sessions
 const FAVS_KEY = 'oxp_favorites_2026';
 export const favs = new Set();
-export const loadFavs = () => local.getJSON(FAVS_KEY, []).forEach(id => favs.add(id));
+export const loadFavs = () => local.getJSON(FAVS_KEY, []).filter(id => db.byId.has(id)).forEach(id => favs.add(id));
 export const saveFavs = () => local.setJSON(FAVS_KEY, [...favs]);
 
 // ---------------------------------------------------------------- filtering
@@ -99,5 +99,5 @@ export function writeHash() {
 export function defaultDay(n = now()) {
   const days = db.days;
   if (days.some(d => d.date === n.date)) return n.date;
-  return (days.find(d => !d.is_masterclass && d.date > n.date) || days.find(d => !d.is_masterclass) || days[0]).date;
+  return (days.find(d => d.date > n.date) || days[days.length - 1]).date;
 }

@@ -143,7 +143,9 @@ class SemanticIndex:
         self.cache_path.write_text(json.dumps(payload, indent=0, sort_keys=True) + '\n', encoding='utf-8')
 
     def _plenary(self, i: int) -> bool:
-        return len(self.tracks[i]['rooms']) > 2
+        """Plenaries and the pre-event masterclasses are never search results."""
+        track = self.tracks[i]
+        return len(track['rooms']) > 2 or bool(track.get('is_masterclass'))
 
     def build_in_background(self):
         def run():

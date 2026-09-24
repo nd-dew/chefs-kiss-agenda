@@ -21,7 +21,7 @@ def fake_gemini(monkeypatch):
     def stream_text(settings, payload, timeout=120):
         calls.append(payload)
         yield 'Try '
-        yield '[[s0]] and [[s5]].'
+        yield '[[s20]] and [[s25]].'
 
     monkeypatch.setattr(gemini, 'stream_text', stream_text)
     return calls

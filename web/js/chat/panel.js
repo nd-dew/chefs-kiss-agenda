@@ -29,7 +29,7 @@ const talkRefs = text => refsIn(text).filter(r => db.byRef.get(r) && !db.byRef.g
 
 function refCard(ref) {
   const t = db.byRef.get(ref);
-  if (!t) return `<span class="ref bad">${esc(ref)}</span>`;
+  if (!t) return ''; // hidden (e.g. masterclass) or unknown session
   const where = t.plenary ? 'All venues' : esc(t.room_str);
   return `<span class="ref${isPast(t) ? ' is-past' : ''}" role="button" tabindex="0" data-id="${t.id}" style="${hueStyle(t)}">
     <span class="bar"></span><span class="ref-main"><span class="ref-title">${esc(t.title)}</span>

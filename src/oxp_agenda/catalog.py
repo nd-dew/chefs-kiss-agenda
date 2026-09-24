@@ -41,11 +41,12 @@ def catalog_line(index: int, track: dict) -> str:
 
 
 def build_catalog(agenda: dict) -> str:
-    return '\n'.join(catalog_line(i, t) for i, t in enumerate(agenda['tracks']))
+    # Refs keep their agenda.json position even though masterclasses are skipped.
+    return '\n'.join(catalog_line(i, t) for i, t in enumerate(agenda['tracks']) if not t.get('is_masterclass'))
 
 
 def build_system_prompt(agenda: dict) -> str:
-    days = ', '.join(d['label'] + (' (masterclasses only)' if d['is_masterclass'] else '') for d in agenda['days'])
+    days = ', '.join(d['label'] for d in agenda['days'] if not d['is_masterclass'])
     return f"""You are the friendly schedule assistant inside the {agenda['event_title']} agenda app \
 ({agenda['location']}, times are {agenda['timezone']}). Conference days: {days}.
 

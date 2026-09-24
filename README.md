@@ -1,6 +1,6 @@
 # OXP 2026 Agenda
 
-A clean, fast explorer for the **Odoo Experience 2026** schedule (484 sessions, Sep 22–26, Brussels Expo),
+A clean, fast explorer for the **Odoo Experience 2026** schedule (468 talks, Sep 24–26, Brussels Expo; the pre-event masterclass days are left out),
 with a timetable view, rich filtering, a personal schedule and a Gemini-powered assistant that knows every talk.
 
 - **Timetable** (default): rooms × time, sticky headers, keynotes/lunch as full-width bands, a live "now" line;

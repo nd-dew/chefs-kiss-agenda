@@ -13,12 +13,14 @@ export const db = { days: [], sessions: [], rooms: [], tags: [], byId: new Map()
  * prompt uses the same numbering for its [[s123]] citations.
  */
 export function prepare(raw) {
-  const days = raw.days.map(d => ({ ...d, n: raw.tracks.filter(t => t.day === d.date).length }));
-  const known = new Set(raw.rooms);
-  const rooms = [...ROOM_ORDER.filter(r => known.has(r)), ...raw.rooms.filter(r => !ROOM_ORDER.includes(r))];
+  // The two pre-event masterclass days (8 paid all-day trainings) aren't part of the conference agenda.
+  const days = raw.days.filter(d => !d.is_masterclass).map(d => ({ ...d, n: raw.tracks.filter(t => t.day === d.date).length }));
+  const dayDates = new Set(days.map(d => d.date));
+  const used = new Set(raw.tracks.filter(t => dayDates.has(t.day)).flatMap(t => t.rooms));
+  const rooms = [...ROOM_ORDER.filter(r => used.has(r)), ...raw.rooms.filter(r => used.has(r) && !ROOM_ORDER.includes(r))];
   const tagCount = new Map();
 
-  const sessions = raw.tracks.map((t, idx) => {
+  const sessions = raw.tracks.map((t, idx) => ({ t, idx })).filter(({ t }) => dayDates.has(t.day)).map(({ t, idx }) => {
     t.badges.forEach(b => tagCount.set(b, (tagCount.get(b) || 0) + 1));
     const s = toMin(t.start_time);
     const plenary = t.rooms.length > 2; // keynotes, lunch, concerts span every room

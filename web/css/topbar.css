@@ -30,8 +30,6 @@
 .day[aria-selected="true"], .view-btn[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
 .day[aria-selected="true"] { color: var(--accent); font-weight: 600; }
 .day .today-dot { position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--now); }
-.day.mc { font-style: normal; }
-.day.mc::after { content: 'MC'; font-size: 9px; font-weight: 600; letter-spacing: .04em; color: var(--faint); margin-left: 1px; }
 .view-btn .count {
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; line-height: 18px; text-align: center;
   background: var(--accent); color: var(--accent-contrast); font-weight: 600;
@@ -94,7 +92,6 @@ kbd {
 @container app (max-width: 900px) {
   .ctl .lbl { display: none; }
   .day { padding: 0 8px; }
-  .day.mc::after { display: none; }
 }
 /* Phones: two compact rows — search + actions, then days + views */
 @container app (max-width: 700px) {

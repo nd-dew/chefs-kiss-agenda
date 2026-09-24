@@ -22,8 +22,8 @@ export function renderDays() {
   $('#days').innerHTML = db.days.map(d => {
     const [weekday, , day] = d.short_label.split(' ');
     const selected = d.date === state.day && state.view !== 'mine';
-    const title = `${d.label}${d.is_masterclass ? ' · Masterclasses' : ` · ${d.n} talks`}`;
-    return `<button class="day${d.is_masterclass ? ' mc' : ''}" role="tab" data-day="${d.date}" aria-selected="${selected}" title="${esc(title)}">
+    const title = `${d.label} · ${d.n} talks`;
+    return `<button class="day" role="tab" data-day="${d.date}" aria-selected="${selected}" title="${esc(title)}">
       ${d.date === today ? '<i class="today-dot"></i>' : ''}${weekday} ${day}</button>`;
   }).join('');
 }

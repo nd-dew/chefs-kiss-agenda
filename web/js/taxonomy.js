@@ -51,7 +51,6 @@ export const FORMATS = [
   { id: 'invited', label: 'Invited speaker', tags: ['Invited Speaker'] },
   { id: 'influencer', label: 'Influencer', tags: ['Influencer'] },
   { id: 'mini', label: 'Mini event', tags: ['Mini Events'] },
-  { id: 'masterclass', label: 'Masterclass', test: t => t.is_masterclass },
 ];
 
 export const ROOM_ORDER = [
@@ -59,11 +58,10 @@ export const ROOM_ORDER = [
   'Auditorium 2000 A', 'Auditorium 2000 B', 'Auditorium 2000 C', 'Auditorium 500',
   'Hall 6.A', 'Hall 6.B', 'Hall 6.C', 'Hall 6.D', 'Hall 6.E', 'Hall 7.A', 'Hall 7.B',
   'Education Village',
-  ...Array.from({ length: 8 }, (_, i) => `Masterclass Room ${i + 1}`),
 ];
 
 export const venueOf = room =>
-  (room.match(/^(Auditorium \d+|Hall \d+)/) || [])[1] || (room.startsWith('Masterclass') ? 'Masterclass rooms' : room);
+  (room.match(/^(Auditorium \d+|Hall \d+)/) || [])[1] || room;
 
 const OPTIONS = { tracks: [...TRACKS, OTHER], levels: LEVELS, langs: LANGS, formats: FORMATS };
 

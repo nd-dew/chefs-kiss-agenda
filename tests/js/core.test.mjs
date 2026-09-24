@@ -47,7 +47,7 @@ test('taxonomy folds tags into facets', () => {
   assert.deepEqual(classify({ title: 'Lunch', badges: [] }, true).tracks, []);
   assert.equal(optLabel('tracks', 'finance'), 'Accounting & Finance');
   assert.equal(venueOf('Hall 6.B'), 'Hall 6');
-  assert.equal(venueOf('Masterclass Room 3'), 'Masterclass rooms');
+  assert.equal(venueOf('Education Village'), 'Education Village');
 });
 
 test('language detection prefers the title', () => {
@@ -68,9 +68,11 @@ test('timetable squeezes hours outside 10:00-18:00', () => {
 });
 
 test('prepare indexes the real dataset', () => {
-  assert.equal(db.sessions.length, 484);
-  assert.equal(db.days.length, 5);
-  assert.equal(db.byRef.get('s0').title, raw.tracks[0].title); // refs follow agenda.json order
+  assert.equal(db.sessions.length, 468); // 484 minus the 16 pre-event masterclasses
+  assert.deepEqual(db.days.map(d => d.date), ['2026-09-24', '2026-09-25', '2026-09-26']);
+  const first = raw.tracks.findIndex(t => !t.is_masterclass);
+  assert.equal(db.byRef.get(`s${first}`).title, raw.tracks[first].title); // refs follow agenda.json order
+  assert.ok(!db.rooms.some(r => r.startsWith('Masterclass')));
   assert.ok(db.sessions.every(t => t.e > t.s && t.hay === norm(t.hay)));
   assert.ok(db.sessions.filter(t => t.plenary).every(t => t.rooms.length > 2));
   assert.ok(!db.sessions.some(t => /<div/.test(t.desc)));

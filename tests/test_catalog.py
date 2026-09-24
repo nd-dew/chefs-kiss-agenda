@@ -3,8 +3,8 @@ from oxp_agenda import catalog
 
 def test_every_session_gets_a_ref_matching_its_position(agenda):
     lines = catalog.build_catalog(agenda).splitlines()
-    assert len(lines) == len(agenda['tracks'])
-    assert all(line.startswith(f's{i} | ') for i, line in enumerate(lines))
+    expected = [i for i, t in enumerate(agenda['tracks']) if not t['is_masterclass']]
+    assert [int(line.split(' | ')[0][1:]) for line in lines] == expected
 
 
 def test_catalog_line_fields():
@@ -49,4 +49,4 @@ def test_system_prompt_mentions_citation_format_and_days(agenda):
     prompt = catalog.build_system_prompt(agenda)
     assert '[[s123]]' in prompt
     assert 'Thursday, Sep 24' in prompt
-    assert 'Tuesday, Sep 22 (masterclasses only)' in prompt
+    assert 'Tuesday, Sep 22' not in prompt  # masterclass days are not part of the agenda
