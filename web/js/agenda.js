@@ -12,7 +12,7 @@ export const db = { days: [], sessions: [], rooms: [], tags: [], byId: new Map()
  * `ref` ("s123") is the session's position in agenda.json; the server's assistant
  * prompt uses the same numbering for its [[s123]] citations.
  */
-export function prepare(raw) {
+export function prepare(raw, affiliations = {}) {
   // The two pre-event masterclass days (8 paid all-day trainings) aren't part of the conference agenda.
   const days = raw.days.filter(d => !d.is_masterclass).map(d => ({ ...d, n: raw.tracks.filter(t => t.day === d.date).length }));
   const dayDates = new Set(days.map(d => d.date));
@@ -35,6 +35,8 @@ export function prepare(raw) {
       plenary,
       desc,
       name: (t.speaker || '').trim(),
+      aff: affiliations[t.id] || null, // { kind: 'odoo' | 'external' | 'mixed', orgs }
+      speakers: { odoo: ['odoo'], external: ['external'], mixed: ['odoo', 'external'] }[affiliations[t.id]?.kind] || [],
       hay: norm([t.title, t.speaker_raw, t.room_str, t.badges.join(' '), desc].join(' ')),
     };
   });
@@ -53,9 +55,10 @@ export function prepare(raw) {
 }
 
 export async function load(url = 'data/agenda.json') {
-  const res = await fetch(url);
+  const [res, aff] = await Promise.all([fetch(url), fetch('data/affiliations.json').catch(() => null)]);
   if (!res.ok) throw new Error(`Could not load the agenda (HTTP ${res.status})`);
-  Object.assign(db, prepare(await res.json()));
+  const affiliations = aff?.ok ? await aff.json() : {}; // optional
+  Object.assign(db, prepare(await res.json(), affiliations));
   return db;
 }
 

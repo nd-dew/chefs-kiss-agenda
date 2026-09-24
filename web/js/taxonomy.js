@@ -53,6 +53,12 @@ export const FORMATS = [
   { id: 'mini', label: 'Mini event', tags: ['Mini Events'] },
 ];
 
+// Who presents: from web/data/affiliations.json (agenda text + online lookup).
+export const SPEAKERS = [
+  { id: 'odoo', label: 'Odoo' },
+  { id: 'external', label: 'External' },
+];
+
 export const ROOM_ORDER = [
   'Auditorium 4000 A', 'Auditorium 4000 B', 'Auditorium 4000 C', 'Auditorium 4000 D',
   'Auditorium 2000 A', 'Auditorium 2000 B', 'Auditorium 2000 C', 'Auditorium 500',
@@ -63,7 +69,7 @@ export const ROOM_ORDER = [
 export const venueOf = room =>
   (room.match(/^(Auditorium \d+|Hall \d+)/) || [])[1] || room;
 
-const OPTIONS = { tracks: [...TRACKS, OTHER], levels: LEVELS, langs: LANGS, formats: FORMATS };
+const OPTIONS = { tracks: [...TRACKS, OTHER], levels: LEVELS, langs: LANGS, formats: FORMATS, speakers: SPEAKERS };
 
 /** Human label for a facet value ("tracks", "ai") -> "AI". Rooms and tags are their own label. */
 export const optLabel = (facet, value) => (OPTIONS[facet]?.find(o => o.id === value) || { label: value }).label;

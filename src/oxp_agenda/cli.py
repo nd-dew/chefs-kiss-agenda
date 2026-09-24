@@ -29,9 +29,27 @@ def cmd_scrape(args: argparse.Namespace) -> int:
 
     agenda = scrape(args.out, args.cache_dir, refresh=args.refresh, workers=args.workers)
     print(f'{agenda["total_tracks"]} sessions -> {args.out}')
+    cmd_affiliations(args)
     if config.GeminiSettings.from_env().enabled:
         return cmd_embed(args)
     print('GEMINI_API_KEY not set: skipping embeddings (run `oxp-agenda embed` later)')
+    return 0
+
+
+def cmd_affiliations(args: argparse.Namespace) -> int:
+    from collections import Counter
+
+    from oxp_agenda import affiliation
+    from oxp_agenda.catalog import load_agenda
+
+    settings = config.GeminiSettings.from_env()
+    agenda = load_agenda(getattr(args, 'out', config.AGENDA_PATH))
+    result = affiliation.build(
+        agenda, config.AFFILIATIONS_PATH, settings if not getattr(args, 'offline', False) else None
+    )
+    counts = Counter(r['kind'] for r in result.values())
+    web = sum(r['source'] == 'web' for r in result.values())
+    print(f'{dict(counts)} ({web} checked online) -> {config.AFFILIATIONS_PATH}')
     return 0
 
 
@@ -63,6 +81,10 @@ def build_parser() -> argparse.ArgumentParser:
     scrape.add_argument('--refresh', action='store_true', help='ignore cached pages and download again')
     scrape.add_argument('--workers', type=int, default=16)
     scrape.set_defaults(func=cmd_scrape)
+
+    aff = sub.add_parser('affiliations', help='tag talks as Odoo / external speakers (web lookup for unclear ones)')
+    aff.add_argument('--offline', action='store_true', help='only use the agenda text and tags')
+    aff.set_defaults(func=cmd_affiliations)
 
     embed = sub.add_parser('embed', help='(re)compute session embeddings for semantic search')
     embed.set_defaults(func=cmd_embed)

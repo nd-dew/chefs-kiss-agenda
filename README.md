@@ -11,6 +11,7 @@ with a timetable view, rich filtering, a personal schedule and a Gemini-powered 
   as removable chips. Everything is kept in the URL, so views can be shared
 - **Smart search**: instant keyword matches; if the day has few or none, results widen automatically to other days
   and then to talks *related by meaning* (Gemini embeddings), e.g. "how to speed up my database" → the PostgreSQL talks
+- **Odoo or external speaker** on every talk, plus a Speaker filter (see below)
 - **Language** of every talk: Odoo's tag when present, otherwise detected from the title and abstract
 - **Details**: hover card on desktop, side panel with speaker, abstract, video and related talks
 - **Ask AI** (`A`): answers grounded on the full agenda; cited sessions appear as clickable, starrable cards
@@ -41,6 +42,14 @@ uv run oxp-agenda embed             # (re)embed new or edited talks; scrape runs
 
 This parses the agenda tables on odoo.com and every talk page (description, speaker bio, photo, video), then
 writes `web/data/agenda.json`, and updates the embeddings in `data/embeddings.json`.
+
+## Odoo vs external speakers
+
+`uv run oxp-agenda affiliations` (also run by `scrape`) writes `web/data/affiliations.json`. Most talks say it
+themselves in the official agenda ("… from Odoo", "CEO at Dynapps", an Odoo login such as "(pian)"), and Odoo's
+own tags help (Internal vs Community / Partner / Invited Speaker / Influencer). Speakers whose listing names no
+company are looked up online with Gemini + Google Search, and the results are cached. Company names shown in the
+app come only from the agenda; web lookups only decide Odoo vs external.
 
 ## How semantic search works
 
@@ -84,6 +93,7 @@ src/oxp_agenda/        Python package (CLI: oxp-agenda)
   gemini.py            request building and SSE streaming
   catalog.py           agenda -> assistant system prompt
   semantic.py          embeddings cache + /api/search ranking
+  affiliation.py       Odoo / external speaker tagging
   scraper.py           odoo.com agenda + talk pages -> agenda.json
 web/                   the app (served as-is)
   index.html

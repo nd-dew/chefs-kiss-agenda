@@ -29,6 +29,6 @@
   display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px;
   background: var(--surface-2); color: var(--muted); font-size: 11.5px; font-weight: 500; white-space: nowrap;
 }
-.tag.track { background: hsl(var(--h) var(--sat, var(--ev-s)) var(--ev-l)); color: var(--text); }
+.tag.track { color: var(--text); }
 button.tag:hover { background: var(--surface-3); color: var(--text); }
 .popover .tags { margin-top: 10px; }

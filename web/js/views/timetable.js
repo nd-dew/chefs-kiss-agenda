@@ -5,7 +5,7 @@ import { I } from '../icons.js';
 import { esc, plural } from '../lib/html.js';
 import { hhmm } from '../lib/time.js';
 import { isFiltering, state } from '../state.js';
-import { hl, hueStyle, otherDaysHint, starBtn, statusCls } from './parts.js';
+import { affTag, hl, otherDaysHint, starBtn, statusCls } from './parts.js';
 import { relatedHint } from './results.js';
 
 export const PX_PER_MIN = 2.2;
@@ -70,10 +70,10 @@ function sessionCard(t, n, top, height, lane) {
   const pos = lane.n > 1
     ? `left:calc(${(lane.lane / lane.n) * 100}% + 2px);right:auto;width:calc(${100 / lane.n}% - 4px);`
     : '';
-  return `<article class="ev${height > 120 ? ' tall' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${top}px;height:${height}px;${pos}${hueStyle(t)}">
+  return `<article class="ev${height > 120 ? ' tall' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${top}px;height:${height}px;${pos}">
     ${starBtn(t)}
     <div class="ev-title">${hl(t.title)}</div>
-    ${t.name && height > 50 ? `<div class="ev-sub">${hl(t.name)}</div>` : ''}
+    ${t.name && height > 50 ? `<div class="ev-sub">${t.aff?.kind !== 'odoo' ? affTag(t, { short: true }) : ''}${hl(t.name)}</div>` : ''}
     ${height > 110 ? `<div class="ev-when">${hhmm(t.s)} – ${hhmm(t.e)}${t.youtube_id ? ` ${I.play}` : ''}</div>` : ''}
   </article>`;
 }
@@ -127,8 +127,12 @@ export function renderTimetable(list, dayList, n) {
       <div class="ev-title">${hl(t.title.replace(/\s*\(.*\)\s*$/, ''))}<span>${hhmm(t.s)}–${hhmm(t.e)}</span></div></article>`;
   }).join('');
 
+  // The now-line sits in the grid layer, under the cards, so it never crosses text.
   const showNow = n.date === state.day && n.min >= start && n.min <= end;
-  if (showNow) gutter += `<div class="now-tag" style="top:${y(n.min)}px">${hhmm(n.min)}</div>`;
+  if (showNow) {
+    gutter += `<div class="now-tag" style="top:${y(n.min)}px">${hhmm(n.min)}</div>`;
+    lines += `<div class="now-line" style="top:${y(n.min)}px"></div>`;
+  }
 
   const hint = otherDaysHint(n, relatedHint(n, talks));
   return `${hint ? `<div class="tt-hint">${hint}</div>` : ''}
@@ -138,6 +142,5 @@ export function renderTimetable(list, dayList, n) {
       <div class="tt-grid">${lines}</div>
       ${cols}
       <div class="tt-layer">${bands}</div>
-      ${showNow ? `<div class="tt-nowlayer"><div class="now-line" style="top:${y(n.min)}px"></div></div>` : ''}
     </div>`;
 }

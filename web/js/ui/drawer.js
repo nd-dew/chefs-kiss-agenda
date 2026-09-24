@@ -8,7 +8,7 @@ import { esc, linkify } from '../lib/html.js';
 import { dur, hhmm, isLive, isPast, now } from '../lib/time.js';
 import { favs, state } from '../state.js';
 import { optLabel } from '../taxonomy.js';
-import { rowHTML, speakerBlock, tagChips } from '../views/parts.js';
+import { affTag, rowHTML, speakerBlock, tagChips } from '../views/parts.js';
 import { closeMenu } from './menu.js';
 import { hidePop } from './popover.js';
 import { toast } from './toast.js';
@@ -65,7 +65,7 @@ function content(t) {
         <button class="btn" data-act="ask-ai">${I.spark}Ask AI</button>
       </div>
       <div id="video-slot"></div>
-      ${t.name ? `<section class="dr-sec"><h4>Speaker</h4><div class="dr-speaker">${speakerBlock(t, 'lg')}
+      ${t.name ? `<section class="dr-sec"><h4>Speaker ${affTag(t)}</h4><div class="dr-speaker">${speakerBlock(t, 'lg')}
         ${t.speaker_bio ? `<p>${linkify(t.speaker_bio)}</p>` : ''}</div></section>` : ''}
       ${paragraphs ? `<section class="dr-sec"><h4>About this session</h4>${paragraphs}</section>` : ''}
       ${t.badges.length || t.tracks.length ? `<section class="dr-sec"><h4>Tags</h4>${tagChips(t, { clickable: true })}</section>` : ''}

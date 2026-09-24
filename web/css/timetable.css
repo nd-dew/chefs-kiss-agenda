@@ -45,8 +45,7 @@
 .tt-squeeze { position: absolute; left: 0; right: 0; background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 .tt-layer { grid-column: 2 / -1; grid-row: 2; position: relative; pointer-events: none; }
 .tt-layer > * { pointer-events: auto; }
-.tt-nowlayer { grid-column: 1 / -1; grid-row: 2; position: relative; pointer-events: none; z-index: 7; }
-.now-line { position: absolute; left: var(--gutter); right: 0; height: 0; border-top: 2px solid var(--now); }
+.now-line { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--now); }
 .now-tag {
   position: absolute; right: 5px; transform: translateY(-50%); z-index: 2;
   padding: 2px 5px; border-radius: 5px; font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums;
@@ -59,12 +58,13 @@
   display: flex; flex-direction: column; gap: 2px;
   padding: 6px 8px 6px 10px; overflow: hidden;
   border-radius: var(--radius-sm);
-  background: hsl(var(--h) var(--sat, var(--ev-s)) var(--ev-l));
-  box-shadow: inset 3px 0 0 hsl(var(--h) var(--sat-bd, 62%) var(--ev-bd-l)), inset 0 0 0 1px hsl(var(--h) var(--sat, var(--ev-s)) calc(var(--ev-l) - 5%) / .6);
+  /* Neutral cards: colour is reserved for meaning (saved = accent, live = red). */
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
   cursor: pointer; text-align: left;
   transition: background .12s, transform .12s, box-shadow .12s;
 }
-.ev:hover { background: hsl(var(--h) var(--sat, var(--ev-s)) var(--ev-l-hover)); z-index: 3; }
+.ev:hover { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-strong); z-index: 3; }
 .ev:focus-visible { z-index: 3; }
 .ev-title {
   font-size: 12.5px; font-weight: 600; line-height: 1.3; letter-spacing: -.005em;
@@ -77,9 +77,10 @@
 .ev-when svg { width: 11px; height: 11px; }
 .ev.is-past { opacity: .5; }
 .ev.is-past:hover { opacity: .9; }
-.ev.is-live { box-shadow: inset 3px 0 0 var(--now), inset 0 0 0 1px hsl(var(--h) var(--sat, var(--ev-s)) calc(var(--ev-l) - 5%) / .6); }
+.ev.is-live { box-shadow: inset 3px 0 0 var(--now), inset 0 0 0 1px var(--border); }
 .ev.is-live .ev-title::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 5px 1px 0; border-radius: 50%; background: var(--now); vertical-align: middle; animation: pulse 1.6s infinite; }
-.ev.is-fav { box-shadow: inset 3px 0 0 hsl(var(--h) 62% var(--ev-bd-l)), inset 0 0 0 1.5px var(--accent); }
+.ev.is-fav { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.ev.is-fav.is-live { box-shadow: inset 3px 0 0 var(--now), inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, var(--border)); }
 
 .star {
   position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 6px;

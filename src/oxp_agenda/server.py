@@ -19,7 +19,9 @@ class ChatService:
     def __init__(self, agenda_path: Path, settings: GeminiSettings, embeddings_path: Path | None = None):
         self.settings = settings
         agenda = catalog.load_agenda(agenda_path)
-        self.system_prompt = catalog.build_system_prompt(agenda)
+        aff_path = agenda_path.with_name('affiliations.json')
+        affiliations = json.loads(aff_path.read_text(encoding='utf-8')) if aff_path.exists() else {}
+        self.system_prompt = catalog.build_system_prompt(agenda, affiliations)
         self.index = SemanticIndex(agenda, embeddings_path, settings) if embeddings_path else None
         if self.index and settings.enabled and self.index.missing():
             self.index.build_in_background()

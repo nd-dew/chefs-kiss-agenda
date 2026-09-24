@@ -1,4 +1,4 @@
-// The Filters panel (a bottom sheet on phones): topic, level, room, saved / hide past.
+// The Filters panel (a bottom sheet on phones): speaker, topic, level, room, saved / hide past.
 
 import { db } from '../agenda.js';
 import { I } from '../icons.js';
@@ -7,7 +7,7 @@ import { $, isPhone } from '../lib/dom.js';
 import { esc } from '../lib/html.js';
 import { now } from '../lib/time.js';
 import { dayCounts, FACETS, passes, queryTerms, state } from '../state.js';
-import { LEVELS, OTHER, TRACKS, venueOf } from '../taxonomy.js';
+import { LEVELS, OTHER, SPEAKERS, TRACKS, venueOf } from '../taxonomy.js';
 
 const daySessions = () => (db.byDay.get(state.day) || []).filter(t => !t.plenary);
 
@@ -73,6 +73,7 @@ function renderFilters() {
   return `<div class="menu-head"><h3>Filters</h3><span class="fp-count"><b>${shown}</b> of ${total} talks</span>
       <button data-act="clear-filters">Reset</button><button data-act="menu-close">Done</button></div>
     <div class="fp-body">
+      ${section('Speaker', chipsFor('speakers', SPEAKERS))}
       ${section('Topic', chipsFor('tracks', [...TRACKS, OTHER]))}
       ${section('Level', chipsFor('levels', LEVELS))}
       <section class="fp-sec"><h4>Room</h4>${roomSections()}</section>

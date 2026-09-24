@@ -81,7 +81,15 @@ def test_language_flags_toggle(page):
 def test_filters_panel_is_minimal(page):
     page.click('[data-menu=filters]')
     headings = page.locator('.fp-sec > h4').all_inner_texts()
-    assert headings == ['Topic', 'Level', 'Room', 'Show']
+    assert headings == ['Speaker', 'Topic', 'Level', 'Room', 'Show']
+
+
+def test_speaker_filter_shows_external_talks(page):
+    page.click('[data-menu=filters]')
+    page.click('[data-chip="speakers|external"]')
+    page.keyboard.press('Escape')
+    assert page.locator('.tt-col .ev').count() > 10
+    assert page.locator('.tt-col .ev .aff-odoo').count() == 0
 
 
 def test_search_widens_to_other_days(page):

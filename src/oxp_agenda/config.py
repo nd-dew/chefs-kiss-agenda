@@ -7,6 +7,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WEB_DIR = Path(os.environ.get('OXP_WEB_DIR', PROJECT_ROOT / 'web'))
 AGENDA_PATH = WEB_DIR / 'data' / 'agenda.json'
+AFFILIATIONS_PATH = WEB_DIR / 'data' / 'affiliations.json'
 EMBEDDINGS_PATH = Path(os.environ.get('OXP_EMBEDDINGS', PROJECT_ROOT / 'data' / 'embeddings.json'))
 CACHE_DIR = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'oxp-agenda'
 

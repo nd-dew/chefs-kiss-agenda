@@ -6,7 +6,7 @@ import { $, canHover } from '../lib/dom.js';
 import { esc } from '../lib/html.js';
 import { dur, hhmm, isLive, now } from '../lib/time.js';
 import { favs } from '../state.js';
-import { speakerBlock, tagChips } from '../views/parts.js';
+import { affTag, speakerBlock, tagChips } from '../views/parts.js';
 
 const SHOW_DELAY = 280;
 const MOVE_DELAY = 60; // when a card is already showing
@@ -21,7 +21,7 @@ function content(t) {
     <div class="pop-top">${isLive(t, n) ? '<span class="pill live">Live now</span>' : ''}<span>${esc(dayOf(t).short_label)} · ${hhmm(t.s)}–${hhmm(t.e)} · ${dur(t.e - t.s)}</span></div>
     <h4 class="pop-title">${esc(t.title)}</h4>
     <div class="pop-top pop-where">${I.pin}<span>${t.plenary ? 'All venues' : esc(t.room_str)}</span>${t.youtube_id ? `<span>·</span>${I.play}<span>Video</span>` : ''}</div>
-    ${t.name ? speakerBlock(t) : ''}
+    ${t.name ? speakerBlock(t) : ''}${t.aff ? `<div class="pop-aff">${affTag(t)}</div>` : ''}
     ${t.desc ? `<p class="pop-desc">${esc(t.desc.replace(/\n+/g, ' '))}</p>` : ''}
     ${t.badges.length || t.tracks.length ? tagChips(t, { max: 6 }) : ''}
     <div class="pop-foot"><span>Click for details</span><span>${favs.has(t.id) ? '★ Saved' : '☆ Star to save'}</span></div>`;

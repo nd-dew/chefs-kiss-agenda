@@ -55,7 +55,7 @@ body.chat-open .ai-fab { opacity: 0; pointer-events: none; transform: scale(.9);
   transition: border-color .12s, box-shadow .12s;
 }
 .ref:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
-.ref .bar { width: 3px; border-radius: 3px; flex: none; background: hsl(var(--h) var(--sat-bd, 62%) var(--ev-bd-l)); }
+.ref .bar { width: 3px; border-radius: 3px; flex: none; background: var(--line); }
 .ref-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ref-title { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--text); }
 .ref-meta { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }

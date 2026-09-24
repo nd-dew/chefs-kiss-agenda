@@ -45,10 +45,24 @@ export function tagChips(t, { max = 99, clickable = false } = {}) {
   return `<div class="tags">${chips.join('')}</div>`;
 }
 
+/** "Odoo" / "External · Dynapps" / "Odoo + Partena" tag; `short` for tight timetable cards. */
+export function affTag(t, { short = false } = {}) {
+  if (!t.aff) return '';
+  // Company names come only from the official agenda; web lookups just decide Odoo vs external.
+  const others = t.aff.source === 'agenda' ? t.aff.orgs.filter(o => o !== 'Odoo') : [];
+  const label = {
+    odoo: 'Odoo',
+    external: short ? 'External' : `External${others.length ? ` · ${others.join(', ')}` : ''}`,
+    mixed: short ? 'Odoo + guest' : `Odoo + ${others.join(', ') || 'guest'}`,
+  }[t.aff.kind];
+  return `<span class="aff aff-${t.aff.kind}" title="${t.aff.source === 'web' ? 'Found online' : 'From the agenda'}">${esc(label)}</span>`;
+}
+
 /** A session as a card row (list view, saved view, drawer "related" lists). */
 export function rowHTML(t, n, { time = false, day = false, extra = '' } = {}) {
   const tk = trackOf(t);
   const meta = [
+    affTag(t),
     `<span>${I.pin}${t.plenary ? 'All venues' : hl(t.room_str)}</span>`,
     time ? '' : `<span>${I.clock}${dur(t.e - t.s)}</span>`,
     tk ? `<span><i class="dot" style="${hueStyle(t)}"></i>${esc(tk.label)}</span>` : '',

@@ -6,6 +6,7 @@ import { local } from './lib/storage.js';
 import { isPast, now } from './lib/time.js';
 
 export const FACETS = {
+  speakers: { label: 'Speaker', get: t => t.speakers },
   rooms: { label: 'Room', get: t => t.rooms, search: true },
   tracks: { label: 'Track', get: t => t.tracks },
   levels: { label: 'Level', get: t => t.levels },

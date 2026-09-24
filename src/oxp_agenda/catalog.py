@@ -25,7 +25,18 @@ def short_description(text: str, limit: int = DESCRIPTION_LIMIT) -> str:
     return text
 
 
-def catalog_line(index: int, track: dict) -> str:
+def speaker_kind(aff: dict | None) -> str:
+    if not aff:
+        return ''
+    others = [o for o in aff['orgs'] if o != 'Odoo'] if aff.get('source') == 'agenda' else []
+    return {
+        'odoo': 'Odoo speaker',
+        'external': 'external speaker' + (f' ({", ".join(others)})' if others else ''),
+        'mixed': 'Odoo + external speaker' + (f' ({", ".join(others)})' if others else ''),
+    }[aff['kind']]
+
+
+def catalog_line(index: int, track: dict, aff: dict | None = None) -> str:
     room = 'All venues (plenary)' if len(track['rooms']) > 2 else track['room_str']
     fields = [
         f's{index}',
@@ -33,6 +44,7 @@ def catalog_line(index: int, track: dict) -> str:
         room,
         track['title'],
         track.get('speaker_raw') or track.get('speaker') or '',
+        speaker_kind(aff),
         'tags: ' + ', '.join(track['badges']) if track['badges'] else '',
         'video' if track.get('youtube_id') else '',
         short_description(track.get('description', '')),
@@ -40,12 +52,15 @@ def catalog_line(index: int, track: dict) -> str:
     return ' | '.join(f for f in fields if f)
 
 
-def build_catalog(agenda: dict) -> str:
+def build_catalog(agenda: dict, affiliations: dict | None = None) -> str:
     # Refs keep their agenda.json position even though masterclasses are skipped.
-    return '\n'.join(catalog_line(i, t) for i, t in enumerate(agenda['tracks']) if not t.get('is_masterclass'))
+    aff = affiliations or {}
+    return '\n'.join(
+        catalog_line(i, t, aff.get(t['id'])) for i, t in enumerate(agenda['tracks']) if not t.get('is_masterclass')
+    )
 
 
-def build_system_prompt(agenda: dict) -> str:
+def build_system_prompt(agenda: dict, affiliations: dict | None = None) -> str:
     days = ', '.join(d['label'] for d in agenda['days'] if not d['is_masterclass'])
     return f"""You are the friendly schedule assistant inside the {agenda['event_title']} agenda app \
 ({agenda['location']}, times are {agenda['timezone']}). Conference days: {days}.
@@ -65,8 +80,8 @@ the current time when the day is today.
 the open session). Use it silently; don't repeat it back.
 - Answer in the user's language. Use plain Markdown (bold, bullets); no tables, no headings larger than ###.
 
-Catalog format: ref | day time | room | title | speaker(s) | tags | video available | description
+Catalog format: ref | day time | room | title | speaker(s) | Odoo or external speaker | tags | video | description
 
 SESSION CATALOG
-{build_catalog(agenda)}
+{build_catalog(agenda, affiliations)}
 """
