@@ -14,7 +14,7 @@
   <script>
     try { const t = localStorage.getItem('oxp_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <div class="app">
@@ -70,6 +70,6 @@
     </form>
   </aside>
 
-  <script src="app.js"></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

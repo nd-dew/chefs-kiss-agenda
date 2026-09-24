@@ -1,0 +1,103 @@
+// UI state, saved sessions, filtering and the shareable URL hash.
+
+import { db } from './agenda.js';
+import { norm } from './lib/html.js';
+import { local } from './lib/storage.js';
+import { isPast, now } from './lib/time.js';
+
+export const FACETS = {
+  rooms: { label: 'Room', get: t => t.rooms, search: true },
+  tracks: { label: 'Track', get: t => t.tracks },
+  levels: { label: 'Level', get: t => t.levels },
+  langs: { label: 'Language', get: t => t.langs },
+  formats: { label: 'Format', get: t => t.formats },
+  tags: { label: 'Tags', get: t => t.badges, search: true },
+};
+export const FLAGS = ['video', 'saved', 'upcoming'];
+export const VIEWS = ['grid', 'list', 'mine'];
+
+export const state = {
+  day: null,
+  view: null,
+  lastView: 'grid', // where "back from Saved" goes
+  q: '',
+  ...Object.fromEntries(Object.keys(FACETS).map(k => [k, new Set()])),
+  video: false,
+  saved: false,
+  upcoming: false,
+  menu: null, // open facet menu
+  menuQ: '',
+  drawer: null, // id of the open session
+  scrollPending: true, // scroll to "now" after the next render
+};
+
+// ---------------------------------------------------------------- saved sessions
+const FAVS_KEY = 'oxp_favorites_2026';
+export const favs = new Set();
+export const loadFavs = () => local.getJSON(FAVS_KEY, []).forEach(id => favs.add(id));
+export const saveFavs = () => local.setJSON(FAVS_KEY, [...favs]);
+
+// ---------------------------------------------------------------- filtering
+export const queryTerms = () => norm(state.q).split(/\s+/).filter(Boolean);
+export const matchesQuery = (t, terms) => terms.every(w => t.hay.includes(w));
+
+export const activeFilterCount = () =>
+  Object.keys(FACETS).reduce((n, k) => n + state[k].size, 0) + FLAGS.filter(k => state[k]).length;
+export const isFiltering = () => !!(state.q || activeFilterCount());
+
+/**
+ * Does a session pass the search and filters? `skip` ignores one facet, which is
+ * how the filter menu computes "how many would match if I ticked this".
+ */
+export function passes(t, skip = null, terms = queryTerms(), n = now()) {
+  if (terms.length && !matchesQuery(t, terms)) return false;
+  if (state.saved && !favs.has(t.id)) return false;
+  if (state.upcoming && isPast(t, n)) return false;
+  // Plenary slots (keynotes, lunch, concerts) stay visible as context unless a topic filter is on.
+  if (t.plenary) return !state.video && Object.keys(FACETS).every(k => k === 'rooms' || !state[k].size);
+  if (state.video && !t.youtube_id) return false;
+  for (const k in FACETS) {
+    if (k !== skip && state[k].size && !FACETS[k].get(t).some(v => state[k].has(v))) return false;
+  }
+  return true;
+}
+
+/** [matching talks, all talks] for the current day (plenaries excluded). */
+export function dayCounts() {
+  const talks = (db.byDay.get(state.day) || []).filter(t => !t.plenary);
+  const terms = queryTerms();
+  const n = now();
+  return [talks.filter(t => passes(t, null, terms, n)).length, talks.length];
+}
+
+export function clearFilters() {
+  for (const k in FACETS) state[k].clear();
+  for (const k of FLAGS) state[k] = false;
+  state.q = '';
+}
+
+// ---------------------------------------------------------------- URL hash
+export function readHash(hash = location.hash) {
+  const p = new URLSearchParams(hash.slice(1));
+  if (db.days.some(d => d.date === p.get('day'))) state.day = p.get('day');
+  if (VIEWS.includes(p.get('view'))) state.view = p.get('view');
+  if (state.view && state.view !== 'mine') state.lastView = state.view;
+  state.q = p.get('q') || '';
+  for (const k in FACETS) state[k] = new Set((p.get(k) || '').split('|').filter(Boolean));
+  for (const k of FLAGS) state[k] = p.get(k) === '1';
+}
+
+export function writeHash() {
+  const p = new URLSearchParams({ day: state.day, view: state.view });
+  if (state.q) p.set('q', state.q);
+  for (const k in FACETS) if (state[k].size) p.set(k, [...state[k]].join('|'));
+  for (const k of FLAGS) if (state[k]) p.set(k, '1');
+  history.replaceState(null, '', '#' + p.toString().replace(/%7C/g, '|'));
+}
+
+/** Pick a sensible default day: today during the event, else the next main day. */
+export function defaultDay(n = now()) {
+  const days = db.days;
+  if (days.some(d => d.date === n.date)) return n.date;
+  return (days.find(d => !d.is_masterclass && d.date > n.date) || days.find(d => !d.is_masterclass) || days[0]).date;
+}

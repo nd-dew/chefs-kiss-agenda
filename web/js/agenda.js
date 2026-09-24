@@ -1,0 +1,60 @@
+// The agenda dataset, prepared once at boot and shared read-only.
+
+import { norm } from './lib/html.js';
+import { toMin } from './lib/time.js';
+import { ROOM_ORDER, classify } from './taxonomy.js';
+
+/** Filled by load(); every module reads from this. */
+export const db = { days: [], sessions: [], rooms: [], tags: [], byId: new Map(), byRef: new Map(), byDay: new Map() };
+
+/**
+ * Normalise raw agenda.json into indexed sessions. Pure, so it can be unit-tested.
+ * `ref` ("s123") is the session's position in agenda.json; the server's assistant
+ * prompt uses the same numbering for its [[s123]] citations.
+ */
+export function prepare(raw) {
+  const days = raw.days.map(d => ({ ...d, n: raw.tracks.filter(t => t.day === d.date).length }));
+  const known = new Set(raw.rooms);
+  const rooms = [...ROOM_ORDER.filter(r => known.has(r)), ...raw.rooms.filter(r => !ROOM_ORDER.includes(r))];
+  const tagCount = new Map();
+
+  const sessions = raw.tracks.map((t, idx) => {
+    t.badges.forEach(b => tagCount.set(b, (tagCount.get(b) || 0) + 1));
+    const s = toMin(t.start_time);
+    const plenary = t.rooms.length > 2; // keynotes, lunch, concerts span every room
+    const desc = String(t.description || '').replace(/<[^>]*>?/g, '').trim();
+    return {
+      ...t,
+      ...classify(t, plenary),
+      idx,
+      ref: `s${idx}`,
+      s,
+      e: s + (t.duration_min || 30),
+      plenary,
+      desc,
+      name: (t.speaker || '').trim(),
+      hay: norm([t.title, t.speaker_raw, t.room_str, t.badges.join(' '), desc].join(' ')),
+    };
+  });
+  sessions.sort((a, b) => a.day.localeCompare(b.day) || a.s - b.s || rooms.indexOf(a.rooms[0]) - rooms.indexOf(b.rooms[0]));
+
+  return {
+    event: { title: raw.event_title, location: raw.location, timezone: raw.timezone },
+    days,
+    rooms,
+    sessions,
+    tags: [...tagCount].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([tag]) => tag),
+    byId: new Map(sessions.map(t => [t.id, t])),
+    byRef: new Map(sessions.map(t => [t.ref, t])),
+    byDay: new Map(days.map(d => [d.date, sessions.filter(t => t.day === d.date)])),
+  };
+}
+
+export async function load(url = 'data/agenda.json') {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Could not load the agenda (HTTP ${res.status})`);
+  Object.assign(db, prepare(await res.json()));
+  return db;
+}
+
+export const dayOf = t => db.days.find(d => d.date === t.day);

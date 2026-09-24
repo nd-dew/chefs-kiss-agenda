@@ -1,0 +1,9 @@
+/* Toast */
+
+.toast {
+  position: fixed; z-index: 90; left: 50%; bottom: 22px; transform: translate(-50%, 20px);
+  padding: 9px 14px; border-radius: 10px; background: var(--text); color: var(--bg);
+  font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg);
+  opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }

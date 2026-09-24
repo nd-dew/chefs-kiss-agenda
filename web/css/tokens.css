@@ -1,0 +1,107 @@
+/* OXP 2026 Agenda — design tokens */
+
+:root {
+  color-scheme: light;
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-2: #f1f1f4;
+  --surface-3: #e9e9ee;
+  --border: #e5e5ea;
+  --border-strong: #d2d2da;
+  --text: #16161b;
+  --muted: #62626e;
+  --faint: #9696a2;
+  --accent: #714b67;
+  --accent-strong: #5d3c55;
+  --accent-contrast: #ffffff;
+  --accent-soft: #f4edf2;
+  --line: #e7e7ec;
+  --line-soft: #f1f1f4;
+  --now: #e5484d;
+  --warn: #b25b00;
+  --warn-soft: #fff4e5;
+  --plen-bg: #f3f3f6;
+  --plen-stripe: #ececf1;
+  --ev-s: 72%;
+  --ev-l: 96.5%;
+  --ev-l-hover: 93.5%;
+  --ev-bd-l: 50%;
+  --ev-dot-l: 52%;
+  --shadow-sm: 0 1px 2px rgb(16 16 24 / .06);
+  --shadow-md: 0 4px 16px -4px rgb(16 16 24 / .12), 0 1px 3px rgb(16 16 24 / .06);
+  --shadow-lg: 0 24px 60px -12px rgb(16 16 24 / .28), 0 2px 6px rgb(16 16 24 / .06);
+  --scrim: rgb(12 12 18 / .36);
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --font: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --gutter: 58px;
+  --colw: 172px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e0e11;
+    --surface: #16161a;
+    --surface-2: #1d1d22;
+    --surface-3: #26262d;
+    --border: #28282f;
+    --border-strong: #393942;
+    --text: #ececf1;
+    --muted: #a3a3ae;
+    --faint: #6f6f7a;
+    --accent: #d3a6c8;
+    --accent-strong: #e4c0da;
+    --accent-contrast: #1d1119;
+    --accent-soft: #2b2029;
+    --line: #222228;
+    --line-soft: #1a1a1f;
+    --now: #ff6166;
+    --warn: #ffb35c;
+    --warn-soft: #2e2213;
+    --plen-bg: #1b1b20;
+    --plen-stripe: #202026;
+    --ev-s: 32%;
+    --ev-l: 16.5%;
+    --ev-l-hover: 20.5%;
+    --ev-bd-l: 62%;
+    --ev-dot-l: 64%;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / .4);
+    --shadow-md: 0 6px 20px -6px rgb(0 0 0 / .6), 0 1px 3px rgb(0 0 0 / .4);
+    --shadow-lg: 0 28px 70px -12px rgb(0 0 0 / .75), 0 0 0 1px rgb(255 255 255 / .04);
+    --scrim: rgb(0 0 0 / .55);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e0e11;
+  --surface: #16161a;
+  --surface-2: #1d1d22;
+  --surface-3: #26262d;
+  --border: #28282f;
+  --border-strong: #393942;
+  --text: #ececf1;
+  --muted: #a3a3ae;
+  --faint: #6f6f7a;
+  --accent: #d3a6c8;
+  --accent-strong: #e4c0da;
+  --accent-contrast: #1d1119;
+  --accent-soft: #2b2029;
+  --line: #222228;
+  --line-soft: #1a1a1f;
+  --now: #ff6166;
+  --warn: #ffb35c;
+  --warn-soft: #2e2213;
+  --plen-bg: #1b1b20;
+  --plen-stripe: #202026;
+  --ev-s: 32%;
+  --ev-l: 16.5%;
+  --ev-l-hover: 20.5%;
+  --ev-bd-l: 62%;
+  --ev-dot-l: 64%;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / .4);
+  --shadow-md: 0 6px 20px -6px rgb(0 0 0 / .6), 0 1px 3px rgb(0 0 0 / .4);
+  --shadow-lg: 0 28px 70px -12px rgb(0 0 0 / .75), 0 0 0 1px rgb(255 255 255 / .04);
+  --scrim: rgb(0 0 0 / .55);
+}
