@@ -12,9 +12,9 @@ import { affTag, hl, starBtn, statusCls } from './parts.js';
 const SLOT = 30; // minutes
 export const SCALE = {
   vertical: { busy: 2.2, idle: 0.8 }, // px per minute
-  horizontal: { busy: 4.4, idle: 1.2 },
+  horizontal: { busy: 5.2, idle: 1.2 },
 };
-const ROW = { label: 20, lane: 64, gap: 6 }; // horizontal layout, px
+const ROW = { label: 15, lane: 90, gap: 4 }; // horizontal layout, px
 
 /** Half-hour slots of the day that contain at least one talk (plenaries don't count). */
 export function busySlots(dayList) {
