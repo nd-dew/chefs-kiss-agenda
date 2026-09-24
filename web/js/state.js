@@ -10,10 +10,9 @@ export const FACETS = {
   tracks: { label: 'Track', get: t => t.tracks },
   levels: { label: 'Level', get: t => t.levels },
   langs: { label: 'Language', get: t => t.langs },
-  formats: { label: 'Format', get: t => t.formats },
   tags: { label: 'Tags', get: t => t.badges, search: true },
 };
-export const FLAGS = ['video', 'saved', 'upcoming'];
+export const FLAGS = ['saved', 'upcoming'];
 export const VIEWS = ['grid', 'list', 'mine'];
 
 export const state = {
@@ -22,11 +21,9 @@ export const state = {
   lastView: 'grid', // where "back from Saved" goes
   q: '',
   ...Object.fromEntries(Object.keys(FACETS).map(k => [k, new Set()])),
-  video: false,
   saved: false,
   upcoming: false,
-  menu: null, // open facet menu
-  menuQ: '',
+  menu: null, // open header panel ('filters')
   drawer: null, // id of the open session
   scrollPending: true, // scroll to "now" after the next render
 };
@@ -54,8 +51,7 @@ export function passes(t, skip = null, terms = queryTerms(), n = now()) {
   if (state.saved && !favs.has(t.id)) return false;
   if (state.upcoming && isPast(t, n)) return false;
   // Plenary slots (keynotes, lunch, concerts) stay visible as context unless a topic filter is on.
-  if (t.plenary) return !state.video && Object.keys(FACETS).every(k => k === 'rooms' || !state[k].size);
-  if (state.video && !t.youtube_id) return false;
+  if (t.plenary) return Object.keys(FACETS).every(k => k === 'rooms' || k === 'langs' || !state[k].size);
   for (const k in FACETS) {
     if (k !== skip && state[k].size && !FACETS[k].get(t).some(v => state[k].has(v))) return false;
   }

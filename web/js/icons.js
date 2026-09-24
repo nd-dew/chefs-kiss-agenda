@@ -29,5 +29,8 @@ export const I = {
   send: '<svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   sliders: '<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
+  flagGB: '<svg class="flag" viewBox="0 0 60 36"><clipPath id="gbc"><rect width="60" height="36" rx="5"/></clipPath><g clip-path="url(#gbc)"><path fill="#012169" d="M0 0h60v36H0z"/><path stroke="#fff" stroke-width="7.2" d="M0 0l60 36M60 0 0 36"/><path stroke="#C8102E" stroke-width="2.4" d="M0 0l60 36M60 0 0 36"/><path stroke="#fff" stroke-width="12" d="M30 0v36M0 18h60"/><path stroke="#C8102E" stroke-width="7.2" d="M30 0v36M0 18h60"/></g></svg>',
+  flagFR: '<svg class="flag" viewBox="0 0 60 36"><clipPath id="frc"><rect width="60" height="36" rx="5"/></clipPath><g clip-path="url(#frc)"><path fill="#002395" d="M0 0h20v36H0z"/><path fill="#fff" d="M20 0h20v36H20z"/><path fill="#ED2939" d="M40 0h20v36H40z"/></g></svg>',
+  flagNL: '<svg class="flag" viewBox="0 0 60 36"><clipPath id="nlc"><rect width="60" height="36" rx="5"/></clipPath><g clip-path="url(#nlc)"><path fill="#AE1C28" d="M0 0h60v12H0z"/><path fill="#fff" d="M0 12h60v12H0z"/><path fill="#21468B" d="M0 24h60v12H0z"/></g></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/></svg>',
 };

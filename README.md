@@ -6,9 +6,9 @@ with a timetable view, rich filtering, a personal schedule and a Gemini-powered 
 - **Timetable** (default): rooms × time, sticky headers, keynotes/lunch as full-width bands, a live "now" line;
   hours before 10:00 and after 18:00 (only welcome, keynotes, dinner and concerts) are squeezed
 - **List** (default on phones) and **Saved** views; overlap detection; Google Calendar / `.ics` export
-- **One-row header**: days, search, a language picker, and a single **Filters** panel for room (grouped by venue),
-  track, level, format, tags, has video, saved and hide past, with live counts. Active filters show as removable
-  chips. Everything is kept in the URL, so views can be shared
+- **One-row header**: days, search, 🇬🇧 🇫🇷 🇳🇱 language flags (toggle any combination) and one **Filters** panel
+  with just topic, level, room (grouped by venue), saved and hide past, all with live counts. Active filters show
+  as removable chips. Everything is kept in the URL, so views can be shared
 - **Smart search**: instant keyword matches; if the day has few or none, results widen automatically to other days
   and then to talks *related by meaning* (Gemini embeddings), e.g. "how to speed up my database" → the PostgreSQL talks
 - **Language** of every talk: Odoo's tag when present, otherwise detected from the title and abstract
@@ -69,7 +69,7 @@ prompt would.
 | Key | Action | Key | Action |
 | --- | --- | --- | --- |
 | `/` | Search | `G` / `L` / `S` | Timetable / List / Saved |
-| `1`–`5`, `←` `→` | Change day | `N` | Jump to now |
+| `1`–`3`, `←` `→` | Change day | | |
 | `A` | Ask AI | `F` | Filters |
 | `D` | Toggle dark mode | | |
 | `Esc` | Close menu, panel or chat; clear search | | |

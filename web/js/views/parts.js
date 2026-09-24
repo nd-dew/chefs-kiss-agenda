@@ -53,7 +53,8 @@ export function rowHTML(t, n, { time = false, day = false, extra = '' } = {}) {
     time ? '' : `<span>${I.clock}${dur(t.e - t.s)}</span>`,
     tk ? `<span><i class="dot" style="${hueStyle(t)}"></i>${esc(tk.label)}</span>` : '',
     t.levels.length ? `<span>${I.level}${esc(optLabel('levels', t.levels[0]))}</span>` : '',
-    t.langs.length ? `<span>${I.globe}${esc(t.langs.map(l => optLabel('langs', l)).join(', '))}</span>` : '',
+    // English is the default; only call out other languages.
+    t.langs.some(l => l !== 'en') ? `<span>${I.globe}${esc(t.langs.map(l => optLabel('langs', l)).join(', '))}</span>` : '',
     t.youtube_id ? `<span>${I.play}Video</span>` : '',
     isLive(t, n) ? '<span class="pill live">Live</span>' : '',
     extra,

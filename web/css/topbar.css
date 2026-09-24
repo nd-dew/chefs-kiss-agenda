@@ -108,5 +108,18 @@ kbd {
   .views { grid-area: views; }
   .view-btn { padding: 0 7px; }
   .ctl { padding: 0 9px; }
-  .ctl.icon[data-act="now"] { display: none; } /* the list view already opens at "now" */
+  #theme { display: none; } /* phones follow the system theme */
+  .topbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'search controls' 'days views'; }
 }
+
+/* Language flags: toggle any; none selected = every language */
+.flags { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-2); }
+.flag-btn {
+  width: 34px; height: 30px; border-radius: 7px; display: grid; place-items: center;
+  transition: background .15s, opacity .15s, filter .15s;
+}
+.flag-btn .flag { width: 22px; height: 14px; border-radius: 3px; box-shadow: 0 0 0 1px rgb(0 0 0 / .12); }
+.flag-btn:hover { background: var(--surface); }
+.flags.filtering .flag-btn:not(.on) { opacity: .35; filter: grayscale(.8); }
+.flags.filtering .flag-btn:not(.on):hover { opacity: .8; filter: none; }
+.flag-btn.on { background: var(--surface); box-shadow: var(--shadow-sm), inset 0 0 0 1.5px var(--accent); }

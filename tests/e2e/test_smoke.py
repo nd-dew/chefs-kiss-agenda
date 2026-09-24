@@ -65,11 +65,23 @@ def test_room_filter_and_url_state(page):
     assert page.locator('.tt-room').count() > 1
 
 
-def test_language_selector(page):
-    page.click('[data-menu=langs]')
-    page.click('[data-lang=fr]')
+def test_language_flags_toggle(page):
+    everything = page.locator('.tt-col .ev').count()
+    page.click('.flag-btn[aria-label=French]')
     assert 'langs=fr' in page.url
-    assert page.locator('[data-menu=langs]').inner_text().strip().startswith('French')
+    french = page.locator('.tt-col .ev').count()
+    assert 0 < french < everything
+    page.click('.flag-btn[aria-label=English]')  # flags combine
+    assert 'langs=fr|en' in page.url or 'langs=en|fr' in page.url
+    page.click('.flag-btn[aria-label=French]')
+    page.click('.flag-btn[aria-label=English]')
+    assert page.locator('.tt-col .ev').count() == everything
+
+
+def test_filters_panel_is_minimal(page):
+    page.click('[data-menu=filters]')
+    headings = page.locator('.fp-sec > h4').all_inner_texts()
+    assert headings == ['Topic', 'Level', 'Room', 'Show']
 
 
 def test_search_widens_to_other_days(page):

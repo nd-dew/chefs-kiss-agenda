@@ -15,7 +15,7 @@ import {
 import { optLabel } from './taxonomy.js';
 import { bindTheme, renderActiveBar, renderControls, renderDays, renderTheme, renderViews } from './ui/chrome.js';
 import { closeDrawer, drawerAction, openDrawer, openSession, refreshDrawer } from './ui/drawer.js';
-import { bindMenu, closeMenu, openMenu, renderMenu, setLanguage, toggleChip, toggleRoomGroup } from './ui/menu.js';
+import { bindMenu, closeMenu, openMenu, renderMenu, toggleChip, toggleRoomGroup } from './ui/menu.js';
 import { bindHover, hidePop } from './ui/popover.js';
 import { toast } from './ui/toast.js';
 import { renderList } from './views/list.js';
@@ -59,7 +59,7 @@ function render() {
 }
 
 function scrollToNow(instant = false) {
-  const behavior = instant ? 'auto' : 'smooth';
+  const behavior = instant ? 'auto' : 'smooth'; // opens at the current time on today's schedule
   if (state.view === 'mine' || state.day !== now().date) {
     if (instant) main.scrollTo({ top: 0, left: 0 });
     return;
@@ -140,12 +140,11 @@ function askAbout(t) {
 
 const ACTIONS = {
   clear: clearAll,
-  now: () => scrollToNow(),
   'menu-close': closeMenu,
   'clear-filters': () => {
     const lang = state.langs;
     clearFilters();
-    state.langs = lang; // Reset in the Filters panel keeps the language choice
+    state.langs = lang; // Reset in the Filters panel keeps the language flags
     state.q = search.value;
     render();
   },
@@ -169,7 +168,6 @@ function onClick(e) {
     return ACTIONS[act]?.();
   }
   if ((el = hit('data-filter'))) return applyFilter(el.dataset.filter);
-  if ((el = hit('data-lang'))) return setLanguage(el.dataset.lang);
   if ((el = hit('data-chip'))) return toggleChip(el.dataset.chip);
   if ((el = hit('data-group'))) return toggleRoomGroup(el.dataset.group);
   if ((el = hit('data-menu'))) return openMenu(el.dataset.menu, el);
@@ -208,7 +206,6 @@ const KEYS = {
   m: () => setView('mine'),
   a: () => chat.open(),
   f: () => openMenu('filters'),
-  n: () => scrollToNow(),
   d: () => $('#theme').click(),
   arrowleft: () => stepDay(-1),
   arrowright: () => stepDay(1),

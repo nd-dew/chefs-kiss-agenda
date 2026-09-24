@@ -7,15 +7,14 @@ import { esc } from '../lib/html.js';
 import { local } from '../lib/storage.js';
 import { now } from '../lib/time.js';
 import { activeFilterCount, FACETS, FLAGS, favs, state } from '../state.js';
-import { optLabel, OTHER, TRACKS } from '../taxonomy.js';
+import { LANGS, optLabel, OTHER, TRACKS } from '../taxonomy.js';
 
 const VIEW_TABS = [
   { id: 'grid', icon: I.grid, label: 'Timetable', key: 'G' },
   { id: 'list', icon: I.list, label: 'List', key: 'L' },
   { id: 'mine', icon: I.star, label: 'Saved', key: 'S' },
 ];
-const CHEVRON = '<svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
-const LANG_CODES = { en: 'EN', fr: 'FR', nl: 'NL' };
+const FLAG_ICONS = { en: I.flagGB, fr: I.flagFR, nl: I.flagNL };
 
 export function renderDays() {
   const today = now().date;
@@ -35,23 +34,26 @@ export function renderViews() {
   }).join('');
 }
 
-/** Number of active filters shown on the Filters button (language has its own control). */
+/** Number of active filters shown on the Filters button (language has its own flags). */
 const filterCount = () => activeFilterCount() - state.langs.size;
 
+/** Language flags (toggle any; none = all languages) and the Filters button. */
 export function renderControls() {
-  const lang = [...state.langs][0];
-  const langLabel = lang ? optLabel('langs', lang) : 'Any language';
+  const talks = (db.byDay.get(state.day) || []).filter(t => !t.plenary);
+  const flags = LANGS.map(l => {
+    const on = state.langs.has(l.id);
+    const count = talks.filter(t => t.langs.includes(l.id)).length;
+    const title = `${on ? 'Hide' : 'Only'} ${l.label} talks (${count} today)`;
+    return `<button class="flag-btn${on ? ' on' : ''}" data-chip="langs|${l.id}" aria-pressed="${on}" title="${title}" aria-label="${l.label}">${FLAG_ICONS[l.id]}</button>`;
+  }).join('');
   const n = filterCount();
-  const isToday = state.day === now().date && state.view !== 'mine';
   $('#controls').innerHTML = `
-    <button class="ctl${lang ? ' active' : ''}" data-menu="langs" aria-haspopup="true" aria-expanded="${state.menu === 'langs'}" title="Language">
-      ${I.globe}<span class="lbl"><span class="full">${esc(langLabel)}</span><span class="short">${lang ? LANG_CODES[lang] : 'All'}</span></span>${CHEVRON}</button>
+    <div class="flags${state.langs.size ? ' filtering' : ''}" role="group" aria-label="Talk language">${flags}</div>
     <button class="ctl${n ? ' active' : ''}" data-menu="filters" aria-haspopup="true" aria-expanded="${state.menu === 'filters'}" title="Filters (F)">
-      ${I.sliders}<span class="lbl">Filters</span>${n ? `<span class="n">${n}</span>` : ''}</button>
-    ${isToday ? `<button class="ctl icon" data-act="now" title="Jump to now (N)" aria-label="Jump to now">${I.now}</button>` : ''}`;
+      ${I.sliders}<span class="lbl">Filters</span>${n ? `<span class="n">${n}</span>` : ''}</button>`;
 }
 
-const FLAG_LABELS = { video: 'Has video', saved: 'Saved', upcoming: 'Hide past' };
+const FLAG_LABELS = { saved: 'Saved', upcoming: 'Hide past' };
 const X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 
 /** Removable chips for every active filter (except language), plus the match count. */
