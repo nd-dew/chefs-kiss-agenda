@@ -3,7 +3,7 @@
 import { db } from '../agenda.js';
 import { I } from '../icons.js';
 import { esc, plural } from '../lib/html.js';
-import { favs, matchesQuery, queryTerms } from '../state.js';
+import { favs } from '../state.js';
 import { rowHTML } from './parts.js';
 
 /** Map(id -> [overlapping sessions]) for sessions that clash with another one. */
@@ -28,8 +28,7 @@ export function renderSaved(n) {
       <p>Tap the star on any session to build your personal schedule. It's stored in this browser only.</p>
       <button class="btn primary" data-view="grid">Browse the timetable</button></div></div>`;
   }
-  const terms = queryTerms();
-  const saved = db.sessions.filter(t => favs.has(t.id) && matchesQuery(t, terms));
+  const saved = db.sessions.filter(t => favs.has(t.id));
   const clashes = conflictsOf(saved);
 
   let html = `<div class="list"><div class="mine-head">

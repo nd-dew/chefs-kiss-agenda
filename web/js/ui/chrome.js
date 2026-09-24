@@ -69,10 +69,10 @@ export function renderActiveBar([shown, total]) {
     }
   }
   for (const f of FLAGS) if (state[f]) chips.push(`<button class="achip" data-flag="${f}" title="Remove">${FLAG_LABELS[f]}${X}</button>`);
-  bar.hidden = state.view === 'mine' || (!chips.length && !state.q);
+  bar.hidden = state.view === 'mine' || !chips.length;
   if (bar.hidden) return;
-  bar.innerHTML = `${chips.join('')}${chips.length ? '<button class="fclear" data-act="clear">Clear all</button>' : ''}
-    <span class="acount"><b>${shown}</b> of ${total} sessions${state.q ? ` for “${esc(state.q)}”` : ''}</span>`;
+  bar.innerHTML = `${chips.join('')}<button class="fclear" data-act="clear">Clear all</button>
+    <span class="acount"><b>${shown}</b> of ${total} talks</span>`;
 }
 
 // ---------------------------------------------------------------- theme

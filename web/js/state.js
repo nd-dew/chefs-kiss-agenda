@@ -1,7 +1,6 @@
 // UI state, saved sessions, filtering and the shareable URL hash.
 
 import { db } from './agenda.js';
-import { norm } from './lib/html.js';
 import { local } from './lib/storage.js';
 import { isPast, now } from './lib/time.js';
 
@@ -19,8 +18,9 @@ export const VIEWS = ['grid', 'list', 'mine'];
 export const state = {
   day: null,
   view: null,
-  lastView: 'grid', // where "back from Saved" goes
+  lastView: 'list', // where "back from Saved" goes
   q: '',
+  searchDay: null, // day chip on the search results page (null = all days)
   ...Object.fromEntries(Object.keys(FACETS).map(k => [k, new Set()])),
   saved: false,
   upcoming: false,
@@ -37,19 +37,16 @@ export const loadFavs = () => local.getJSON(FAVS_KEY, []).filter(id => db.byId.h
 export const saveFavs = () => local.setJSON(FAVS_KEY, [...favs]);
 
 // ---------------------------------------------------------------- filtering
-export const queryTerms = () => norm(state.q).split(/\s+/).filter(Boolean);
-export const matchesQuery = (t, terms) => terms.every(w => t.hay.includes(w));
 
 export const activeFilterCount = () =>
   Object.keys(FACETS).reduce((n, k) => n + state[k].size, 0) + FLAGS.filter(k => state[k]).length;
-export const isFiltering = () => !!(state.q || activeFilterCount());
+export const isFiltering = () => !!activeFilterCount();
 
 /**
- * Does a session pass the search and filters? `skip` ignores one facet, which is
- * how the filter menu computes "how many would match if I ticked this".
+ * Does a session pass the filters? (Search is separate: see rank.js.) `skip` ignores one
+ * facet, which is how the filter panel computes "how many would match if I ticked this".
  */
-export function passes(t, skip = null, terms = queryTerms(), n = now()) {
-  if (terms.length && !matchesQuery(t, terms)) return false;
+export function passes(t, skip = null, n = now()) {
   if (state.saved && !favs.has(t.id)) return false;
   if (state.upcoming && isPast(t, n)) return false;
   // Plenary slots (keynotes, lunch, concerts) stay visible as context unless a topic filter is on.
@@ -63,9 +60,8 @@ export function passes(t, skip = null, terms = queryTerms(), n = now()) {
 /** [matching talks, all talks] for the current day (plenaries excluded). */
 export function dayCounts() {
   const talks = (db.byDay.get(state.day) || []).filter(t => !t.plenary);
-  const terms = queryTerms();
   const n = now();
-  return [talks.filter(t => passes(t, null, terms, n)).length, talks.length];
+  return [talks.filter(t => passes(t, null, n)).length, talks.length];
 }
 
 export function clearFilters() {

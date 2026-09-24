@@ -1,13 +1,10 @@
-// Semantic search: asks the server which talks are *about* the query (embeddings),
-// so results can widen beyond exact keyword matches.
+// Semantic search: asks the server which talks are *about* the query (embeddings);
+// rank.js blends those scores with keyword matching.
 
-import { db } from './agenda.js';
 import { emit } from './lib/bus.js';
-import { passes } from './state.js';
 
 const DEBOUNCE_MS = 350;
 const MIN_LENGTH = 3;
-const MIN_Z = 3.0; // how far above the query's average similarity a talk must stand out
 
 export const semantic = { available: null, query: '', loading: false, confident: false, results: [] };
 
@@ -49,17 +46,9 @@ export function requestSemantic(raw) {
   }, DEBOUNCE_MS);
 }
 
-/**
- * Talks related by meaning to the current query that aren't already shown,
- * still honouring the non-search filters (language, track, room…).
- */
-export function relatedSessions(exclude, n, limit = 12) {
-  if (!semantic.confident) return [];
-  return semantic.results
-    .filter(r => r.z >= MIN_Z)
-    .map(r => db.byRef.get(r.ref))
-    .filter(t => t && !exclude.has(t.id) && passes(t, null, [], n))
-    .slice(0, limit);
+/** ref -> z-score of talks related by meaning, only when the server trusts the query. */
+export function semanticScores() {
+  return new Map(semantic.confident ? semantic.results.map(r => [r.ref, r.z]) : []);
 }
 
 export function initSearch(health) {

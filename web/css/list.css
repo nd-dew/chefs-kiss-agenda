@@ -98,3 +98,9 @@
 .ev-sub .aff { height: 15px; padding: 0 4px; font-size: 9.5px; margin-right: 5px; vertical-align: 1px; }
 .pop-aff { margin-top: 8px; }
 .dr-sec h4 .aff { margin-left: 6px; vertical-align: 1px; }
+.res-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 4px 2px 14px; }
+.res-top h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.res-top .res-f { font-weight: 500; font-size: 13px; color: var(--faint); }
+.res-top .chip:disabled { opacity: .4; cursor: default; }
+.aff-related { gap: 3px; background: var(--accent-soft); color: var(--accent-strong); }
+.aff-related svg { width: 10px; height: 10px; }

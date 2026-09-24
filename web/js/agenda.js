@@ -2,7 +2,8 @@
 
 import { norm } from './lib/html.js';
 import { toMin } from './lib/time.js';
-import { ROOM_ORDER, classify } from './taxonomy.js';
+import { indexFields, searchFields } from './rank.js';
+import { classify, optLabel, ROOM_ORDER } from './taxonomy.js';
 
 /** Filled by load(); every module reads from this. */
 export const db = { days: [], sessions: [], rooms: [], tags: [], byId: new Map(), byRef: new Map(), byDay: new Map() };
@@ -40,6 +41,12 @@ export function prepare(raw, affiliations = {}) {
       hay: norm([t.title, t.speaker_raw, t.room_str, t.badges.join(' '), desc].join(' ')),
     };
   });
+  // Search index: topic, level and speaker affiliation are searchable like tags.
+  for (const t of sessions) {
+    const extra = [...t.tracks.map(v => optLabel('tracks', v)), ...t.levels.map(v => optLabel('levels', v))];
+    if (t.aff) extra.push(t.aff.kind === 'odoo' ? 'Odoo staff' : 'external', ...t.aff.orgs);
+    t.index = indexFields(searchFields(t, { tags: extra }));
+  }
   sessions.sort((a, b) => a.day.localeCompare(b.day) || a.s - b.s || rooms.indexOf(a.rooms[0]) - rooms.indexOf(b.rooms[0]));
 
   return {

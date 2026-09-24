@@ -1,15 +1,15 @@
-// List view: sessions grouped by start time (default on phones).
+// List view (the default): sessions grouped by start time.
 
 import { plural } from '../lib/html.js';
 import { hhmm, isLive, isPast } from '../lib/time.js';
 import { isFiltering } from '../state.js';
-import { otherDaysHint, rowHTML } from './parts.js';
+import { rowHTML } from './parts.js';
 
 export function renderList(list, n) {
   if (!list.length || (isFiltering() && !list.some(t => !t.plenary))) return '';
   const groups = new Map();
   for (const t of list) groups.set(t.s, [...(groups.get(t.s) || []), t]);
-  let html = `<div class="list">${otherDaysHint(n)}`;
+  let html = '<div class="list">';
   for (const [s, items] of groups) {
     const live = items.some(t => isLive(t, n));
     const past = items.every(t => isPast(t, n));

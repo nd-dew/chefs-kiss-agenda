@@ -10,7 +10,7 @@ import { $, isPhone, isTyping } from './lib/dom.js';
 import { esc } from './lib/html.js';
 import { now, setNow } from './lib/time.js';
 import {
-  clearFilters, dayCounts, defaultDay, favs, loadFavs, passes, queryTerms, readHash, saveFavs, state, writeHash,
+  clearFilters, dayCounts, defaultDay, favs, loadFavs, passes, readHash, saveFavs, state, writeHash,
 } from './state.js';
 import { optLabel } from './taxonomy.js';
 import { bindTheme, renderActiveBar, renderControls, renderDays, renderTheme, renderViews } from './ui/chrome.js';
@@ -19,7 +19,7 @@ import { bindMenu, closeMenu, openMenu, renderMenu, toggleChip, toggleRoomGroup 
 import { bindHover, hidePop } from './ui/popover.js';
 import { toast } from './ui/toast.js';
 import { renderList } from './views/list.js';
-import { renderResults } from './views/results.js';
+import { renderSearch } from './views/results.js';
 import { emptyState } from './views/parts.js';
 import { renderSaved } from './views/saved.js';
 import { anchorMinute, renderTimetable } from './views/timetable.js';
@@ -30,19 +30,13 @@ const search = $('#q');
 
 // ---------------------------------------------------------------- render
 function renderMain(n) {
+  // Searching shows its own ranked results across all days; it never filters the views.
+  if (state.q.trim()) return renderSearch(n);
   if (state.view === 'mine') return renderSaved(n);
   const dayList = db.byDay.get(state.day) || [];
-  const terms = queryTerms();
-  const visible = dayList.filter(t => passes(t, null, terms, n));
-  if (state.q.trim()) {
-    // Searching: the timetable stays while the day has hits; otherwise results widen automatically.
-    const hits = visible.some(t => !t.plenary);
-    // (On phones results are always a list: matches would be scattered across the rotated grid.)
-    const grid = state.view === 'grid' && hits && !isPhone();
-    return grid ? renderTimetable(visible, dayList, n) : renderResults(n);
-  }
+  const visible = dayList.filter(t => passes(t, null, n));
   const html = state.view === 'grid' ? renderTimetable(visible, dayList, n, { horizontal: isPhone() }) : renderList(visible, n);
-  return html || emptyState(n);
+  return html || emptyState();
 }
 
 function render() {
@@ -104,7 +98,18 @@ function toggleFav(id) {
   render();
 }
 
+/** Leave search results (typing again brings them back). */
+function exitSearch() {
+  if (!state.q) return;
+  state.q = '';
+  state.searchDay = null;
+  search.value = '';
+  requestSemantic('');
+  document.body.classList.remove('searching');
+}
+
 function setDay(date) {
+  exitSearch();
   if (state.view === 'mine') state.view = state.lastView;
   state.day = date;
   state.upcoming &&= date === now().date;
@@ -114,6 +119,7 @@ function setDay(date) {
 }
 
 function setView(view) {
+  exitSearch();
   if (view !== 'mine') state.lastView = view;
   state.view = view;
   state.scrollPending = true;
@@ -194,6 +200,11 @@ function onClick(e) {
   if ((el = hit('data-menu'))) return openMenu(el.dataset.menu, el);
   if ((el = hit('data-flag'))) {
     state[el.dataset.flag] = !state[el.dataset.flag];
+    state.animate = true;
+    return render();
+  }
+  if ((el = hit('data-search-day'))) {
+    state.searchDay = el.dataset.searchDay || null;
     state.animate = true;
     return render();
   }
@@ -293,7 +304,9 @@ function bindEvents() {
   search.addEventListener('input', () => {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
+      if (!state.q) main.scrollTo({ top: 0, left: 0 }); // results start at the top
       state.q = search.value;
+      state.searchDay = null;
       state.animate = true;
       requestSemantic(state.q);
       render();
@@ -342,7 +355,7 @@ async function boot() {
   loadFavs();
   readHash();
   state.day ||= defaultDay();
-  state.view ||= isPhone() ? 'list' : 'grid';
+  state.view ||= 'list';
   if (state.view !== 'mine') state.lastView = state.view;
   search.value = state.q;
   bindEvents();

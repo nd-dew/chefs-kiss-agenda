@@ -10,6 +10,7 @@ import { refsIn, renderMarkdown, replaceRefs } from '../../web/js/chat/markdown.
 import { esc, highlighter, norm } from '../../web/js/lib/html.js';
 import { dur, hhmm, isLive, isPast, toMin, utcStamp } from '../../web/js/lib/time.js';
 import { classify, detectLanguage, optLabel, venueOf } from '../../web/js/taxonomy.js';
+import { queryWords, rank, withinOneEdit } from '../../web/js/rank.js';
 import { conflictsOf } from '../../web/js/views/saved.js';
 import { busySlots, lanes, SCALE, timeScale, timeWindow } from '../../web/js/views/timetable.js';
 
@@ -91,6 +92,25 @@ test('prepare indexes the real dataset', () => {
   assert.equal(db.rooms[0], 'Auditorium 4000 A');
   const thursday = db.byDay.get('2026-09-24');
   assert.ok(thursday.every((t, i) => !i || thursday[i - 1].s <= t.s));
+});
+
+test('search ranking', () => {
+  const titles = (q, sem) => rank(q, db.sessions, sem).map(r => r.t.title);
+  assert.deepEqual(queryWords('How to speed up my database?'), ['speed', 'database']); // filler words dropped
+  assert.ok(withinOneEdit('payrol', 'payroll') && withinOneEdit('acounting', 'accounting') && !withinOneEdit('pay', 'play1'));
+  // Title matches beat abstract-only matches; typos still find the talks.
+  assert.match(titles('payroll')[0], /payroll/i);
+  assert.match(titles('payrol')[0], /payroll/i);
+  assert.match(titles('acounting')[0], /accounting/i);
+  // Speaker names and Odoo logins, but not mid-word noise ("Olym-pian").
+  const pian = rank('pian', db.sessions);
+  assert.ok(pian.slice(0, 2).every(r => r.t.speaker_raw.includes('(pian)')));
+  // Semantic-only talks come in as "related"; strong semantic + keyword ranks first.
+  const pg = db.sessions.find(t => /PostgreSQL optimisation/.test(t.title));
+  const res = rank('speed up my database', db.sessions, new Map([[pg.ref, 4.4]]));
+  const hit = res.find(r => r.t === pg);
+  assert.ok(hit.related && res.indexOf(hit) < 3);
+  assert.deepEqual(rank('zzzqqq', db.sessions), []);
 });
 
 test('timetable lanes split only overlapping sessions', () => {

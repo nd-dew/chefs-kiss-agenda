@@ -27,14 +27,23 @@ def page(browser, server):
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('console', lambda m: m.type == 'error' and errors.append(m.text))
-    page.goto(server + '/' + NOW)
+    page.goto(server + '/' + NOW + '#view=grid')
     page.wait_for_selector('.tt-col .ev')
     yield page
     context.close()
     assert not errors, errors
 
 
-def test_timetable_is_the_default_view(page):
+def test_list_is_the_default_view(browser, server):
+    context = browser.new_context(viewport={'width': 1440, 'height': 900})
+    page = context.new_page()
+    page.goto(server + '/' + NOW)
+    page.wait_for_selector('.slot')
+    assert 'view=list' in page.url
+    context.close()
+
+
+def test_timetable(page):
     assert page.locator('.day[aria-selected="true"]').inner_text().strip() == 'Thu 24'
     assert page.locator('.tt-room').count() >= 10
     assert page.locator('.now-line').count() == 1
@@ -92,10 +101,17 @@ def test_speaker_filter_shows_external_talks(page):
     assert page.locator('.tt-col .ev .aff-odoo').count() == 0
 
 
-def test_search_widens_to_other_days(page):
-    page.fill('#q', 'Eden Hazard')  # only on Saturday
+def test_search_is_a_ranked_page_not_a_filter(page):
+    page.fill('#q', 'payrol')  # typo, and payroll talks are spread over several days
     page.wait_for_selector('.results')
-    assert 'Saturday' in page.locator('.res-h h2').first.inner_text()
+    titles = page.locator('.results .row-title').all_inner_texts()
+    assert titles and all('payroll' in t.lower() for t in titles[:3])
+    days = {d.strip() for d in page.locator('.results .tc-day').all_inner_texts()}
+    assert len(days) > 1  # across days, whatever day tab is selected
+    page.click('[data-search-day="2026-09-26"]')
+    assert {d.strip() for d in page.locator('.results .tc-day').all_inner_texts()} == {'SAT 26'}
+    page.click('[data-day="2026-09-25"]')  # picking a day leaves search
+    assert page.locator('.results').count() == 0 and page.input_value('#q') == ''
 
 
 def test_star_and_saved_view(page):

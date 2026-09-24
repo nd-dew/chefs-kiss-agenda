@@ -1,73 +1,52 @@
-// Search results that widen automatically: the chosen day first, then keyword
-// matches on other days, then talks related by meaning (semantic search).
+// Search results: one ranked list of talks across all days (search is not a filter).
+// The Filters panel still narrows it; day chips switch between all days and one day.
 
 import { db } from '../agenda.js';
 import { I } from '../icons.js';
 import { esc, plural } from '../lib/html.js';
-import { relatedSessions, semantic } from '../search.js';
-import { passes, queryTerms, state } from '../state.js';
-import { otherDaysHint, rowHTML } from './parts.js';
+import { rank } from '../rank.js';
+import { semantic, semanticScores } from '../search.js';
+import { activeFilterCount, passes, state } from '../state.js';
+import { rowHTML } from './parts.js';
 
-const EXPAND_BELOW = 6; // fewer matches than this on the day -> show other days in full
+const PAGE = 60;
+
+/** Ranked matches for the current query, honouring filters (not the day). */
+export function searchMatches(n) {
+  const pool = db.sessions.filter(t => passes(t, null, n) || (t.plenary && !activeFilterCount()));
+  return rank(state.q, pool, semanticScores());
+}
 
 const shortDay = d => d.short_label.replace(' Sep', '');
 
-/** Keyword + filter matches across all days (talks only, plus plenaries when searched). */
-export function keywordMatches(n) {
-  const terms = queryTerms();
-  return db.sessions.filter(t => passes(t, null, terms, n) && (!t.plenary || terms.length));
-}
+export function renderSearch(n) {
+  const all = searchMatches(n);
+  const byDay = new Map(db.days.map(d => [d.date, all.filter(r => r.t.day === d.date).length]));
+  const day = state.searchDay && byDay.get(state.searchDay) ? state.searchDay : null;
+  const results = day ? all.filter(r => r.t.day === day) : all;
+  const exact = results.filter(r => !r.related);
+  const related = results.filter(r => r.related);
 
-function rows(items, n, { day = true } = {}) {
-  return `<div class="res-rows">${items.map(t => rowHTML(t, n, { time: true, day })).join('')}</div>`;
-}
+  const chip = (value, label, count) =>
+    `<button class="chip${(value || null) === day ? ' on' : ''}" data-search-day="${value}"${count ? '' : ' disabled'}>${label}<span class="cnt">${count}</span></button>`;
+  const chips = chip('', 'All days', all.length) + db.days.map(d => chip(d.date, esc(shortDay(d)), byDay.get(d.date))).join('');
+  const rows = items => `<div class="res-rows">${items.slice(0, PAGE).map(r =>
+    rowHTML(r.t, n, { time: true, day: true, extra: r.related ? `<span class="aff aff-related">${I.spark}Related</span>` : '' })).join('')}</div>`;
 
-function header(title, count, sub = '') {
-  return `<header class="res-h"><h2>${title}</h2>${count != null ? `<span class="res-n">${count}</span>` : ''}${sub ? `<p>${sub}</p>` : ''}</header>`;
-}
-
-export function renderResults(n) {
-  const day = db.days.find(d => d.date === state.day);
-  const matches = keywordMatches(n);
-  const onDay = matches.filter(t => t.day === state.day);
-  const elsewhere = matches.filter(t => t.day !== state.day);
-  const expand = onDay.length < EXPAND_BELOW;
-  const shown = new Set([...onDay, ...(expand ? elsewhere : [])].map(t => t.id));
-  const related = relatedSessions(shown, n, onDay.length + elsewhere.length ? 8 : 16);
-
-  let html = '<div class="list results">';
-  if (onDay.length) {
-    html += `<section class="res-sec">${header(`On ${esc(day.label)}`, onDay.length)}${rows(onDay, n, { day: false })}</section>`;
-  } else {
-    const next = elsewhere.length ? 'showing other days' : semantic.loading || related.length ? 'showing related talks' : '';
-    html += `<p class="res-note">${I.search}No exact matches for “${esc(state.q)}” on ${esc(shortDay(day))}${next ? ` — ${next}` : ''}.</p>`;
-  }
-
-  if (elsewhere.length && expand) {
-    for (const d of db.days) {
-      const items = elsewhere.filter(t => t.day === d.date);
-      if (items.length) html += `<section class="res-sec">${header(esc(d.label), items.length)}${rows(items, n)}</section>`;
-    }
-  } else if (elsewhere.length) {
-    html += otherDaysHint(n);
-  }
-
+  let html = `<div class="list results">
+    <header class="res-top">
+      <h2>${plural(exact.length, 'result')} for “${esc(state.q.trim())}”${activeFilterCount() ? ' <span class="res-f">with filters</span>' : ''}</h2>
+      <div class="chips">${chips}</div>
+    </header>`;
+  if (exact.length) html += rows(exact);
   if (semantic.loading) {
-    html += `<section class="res-sec">${header('Related by meaning', null)}<div class="res-loading"><span class="typing"><i></i><i></i><i></i></span>Finding talks about similar topics…</div></section>`;
+    html += `<div class="res-loading"><span class="typing"><i></i><i></i><i></i></span>Finding talks about similar topics…</div>`;
   } else if (related.length) {
-    html += `<section class="res-sec">${header(`${I.spark}Related by meaning`, related.length, 'Talks about similar topics, across all days')}${rows(related, n)}</section>`;
+    html += `<section class="res-sec"><header class="res-h"><h2>${I.spark}Related by meaning</h2><span class="res-n">${related.length}</span><p>No exact words in common, but about the same topic</p></header>${rows(related)}</section>`;
   }
-
-  if (!matches.length && !related.length && !semantic.loading) {
-    html += `<div class="empty"><div><h3>Nothing found</h3><p>No talk matches “${esc(state.q)}”${state.langs.size || state.tracks.size ? ' with the current filters' : ''}.</p>
-      <button class="btn" data-act="clear">Clear search and filters</button> <button class="btn" data-act="ask-q">${I.spark}Ask AI</button></div></div>`;
+  if (!results.length && !semantic.loading) {
+    html += `<div class="empty"><div><h3>No talks found</h3><p>Nothing matches “${esc(state.q.trim())}”${activeFilterCount() ? ' with the current filters' : ''}.</p>
+      ${activeFilterCount() ? '<button class="btn" data-act="clear-filters">Remove filters</button> ' : ''}<button class="btn" data-act="ask-q">${I.spark}Ask AI</button></div></div>`;
   }
   return `${html}</div>`;
-}
-
-/** Extra hint for the timetable: how many related talks the results view would add. */
-export function relatedHint(n, onDay) {
-  if (!state.q || semantic.loading) return '';
-  const related = relatedSessions(new Set(onDay.map(t => t.id)), n, 16);
-  return related.length ? `<button data-view="list">${I.spark}${plural(related.length, 'related talk')}</button>` : '';
 }

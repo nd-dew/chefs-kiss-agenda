@@ -6,7 +6,7 @@ import { emit } from '../lib/bus.js';
 import { $, isPhone } from '../lib/dom.js';
 import { esc } from '../lib/html.js';
 import { now } from '../lib/time.js';
-import { dayCounts, FACETS, passes, queryTerms, state } from '../state.js';
+import { dayCounts, FACETS, passes, state } from '../state.js';
 import { LANGS, LEVELS, OTHER, SPEAKERS, TRACKS, venueOf } from '../taxonomy.js';
 import { FLAG_ICONS } from './chrome.js';
 
@@ -14,10 +14,9 @@ const daySessions = () => (db.byDay.get(state.day) || []).filter(t => !t.plenary
 
 /** value -> count of today's talks that would match if `facet` were ignored. */
 function counts(facet) {
-  const terms = queryTerms();
   const n = now();
   const out = new Map();
-  daySessions().filter(t => passes(t, facet, terms, n))
+  daySessions().filter(t => passes(t, facet, n))
     .forEach(t => FACETS[facet].get(t).forEach(v => out.set(v, (out.get(v) || 0) + 1)));
   return out;
 }

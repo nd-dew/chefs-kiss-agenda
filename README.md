@@ -9,8 +9,11 @@ with a timetable view, rich filtering, a personal schedule and a Gemini-powered 
 - **One-row header**: days, search, 🇬🇧 🇫🇷 🇳🇱 language flags (toggle any combination) and one **Filters** panel
   with just topic, level, room (grouped by venue), saved and hide past, all with live counts. Active filters show
   as removable chips. Everything is kept in the URL, so views can be shared
-- **Smart search**: instant keyword matches; if the day has few or none, results widen automatically to other days
-  and then to talks *related by meaning* (Gemini embeddings), e.g. "how to speed up my database" → the PostgreSQL talks
+- **Smart search** is its own ranked results page across all days (it never filters the views): title >
+  speaker > topic/tags > room > abstract, filler words ignored, one-letter typos forgiven ("payrol", "Pietrusak"),
+  and blended with semantic similarity (Gemini embeddings), so "how to speed up my database" finds the PostgreSQL
+  talks. Filters still narrow results; day chips switch between all days and one day
+- **List** is the default view; **Timetable** and **Saved** are one click away
 - **Odoo or external speaker** on every talk, plus a Speaker filter (see below)
 - **Language** of every talk: Odoo's tag when present, otherwise detected from the title and abstract
 - **Details**: hover card on desktop, side panel with speaker, abstract, video and related talks

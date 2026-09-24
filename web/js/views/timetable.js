@@ -7,8 +7,7 @@ import { I } from '../icons.js';
 import { esc, plural } from '../lib/html.js';
 import { hhmm } from '../lib/time.js';
 import { isFiltering, state } from '../state.js';
-import { affTag, hl, otherDaysHint, starBtn, statusCls } from './parts.js';
-import { relatedHint } from './results.js';
+import { affTag, hl, starBtn, statusCls } from './parts.js';
 
 const SLOT = 30; // minutes
 export const SCALE = {
@@ -234,6 +233,5 @@ export function renderTimetable(list, dayList, n, { horizontal: rotate = false }
     n,
     anchor: anchorMinute(dayList, n),
   };
-  const hint = otherDaysHint(n, relatedHint(n, talks));
-  return `${hint ? `<div class="tt-hint">${hint}</div>` : ''}${rotate ? horizontal(layout) : vertical(layout)}`;
+  return rotate ? horizontal(layout) : vertical(layout);
 }
