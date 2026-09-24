@@ -71,18 +71,19 @@
   position: absolute; top: 5px; transform: translateX(-50%); z-index: 2;
   padding: 1px 5px; border-radius: 5px; font-size: 10.5px; font-weight: 600; background: var(--now); color: #fff;
 }
-.tth-body { position: relative; }
+.tth-body { position: relative; margin-top: 8px; } /* room for the first row's name tab */
 .tth-grid { position: absolute; inset: 0; pointer-events: none; }
 .tth-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
 .tth-line.half { border-left-color: var(--line-soft); }
 .tth-squeeze { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 .tth-now { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--now); }
-.tth-row { position: absolute; left: 0; right: 0; border-bottom: 1px solid var(--line); }
+.tth-row { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
 .tth-room {
+  /* Sits on the divider above its row (like a tab), so rooms don't need a label row. */
   position: sticky; left: 6px; top: 0; z-index: 2; display: inline-flex; align-items: center; gap: 4px;
-  height: 14px; padding: 0 4px; border-radius: 4px;
+  height: 14px; padding: 0 5px; border-radius: 4px; transform: translateY(-50%);
   font-size: 9.5px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--faint);
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  background: var(--bg);
 }
 .tth-room span { font-weight: 500; opacity: .7; }
 .ev.h { right: auto; padding: 7px 9px; gap: 3px; }
