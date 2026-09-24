@@ -1,0 +1,33 @@
+[project]
+name = "oxp-agenda"
+version = "0.2.0"
+description = "Odoo Experience 2026 agenda explorer: clean timetable, filters and a Gemini-powered assistant"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []  # stdlib only at runtime
+
+[project.scripts]
+oxp-agenda = "oxp_agenda.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.8"]
+e2e = ["playwright>=1.49"]
+
+[build-system]
+requires = ["uv_build>=0.10,<0.11"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not e2e'"
+markers = ["e2e: browser smoke tests (uv run --group e2e pytest -m e2e)"]

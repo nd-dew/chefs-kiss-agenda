@@ -1146,12 +1146,7 @@
   async function boot() {
     renderTheme();
     main.innerHTML = '<div class="empty"><div><p>Loading agenda…</p></div></div>';
-    let raw;
-    try {
-      raw = await (await fetch('data/agenda.min.json')).json();
-    } catch (e) {
-      raw = await (await fetch('data/agenda.json')).json();
-    }
+    const raw = await (await fetch('data/agenda.json')).json();
     prepare(raw);
     loadFavs();
     readHash();
