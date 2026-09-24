@@ -11,7 +11,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     from oxp_agenda.server import make_server
 
     settings = config.GeminiSettings.from_env()
-    httpd = make_server(args.host, args.port, config.WEB_DIR, config.AGENDA_PATH, settings)
+    httpd = make_server(args.host, args.port, config.WEB_DIR, config.AGENDA_PATH, settings, config.EMBEDDINGS_PATH)
     host, port = httpd.server_address[:2]
     ai = f'on ({settings.model})' if settings.enabled else 'off (set GEMINI_API_KEY)'
     print(f'OXP agenda on http://{"127.0.0.1" if host == "0.0.0.0" else host}:{port}  ·  AI assistant {ai}', flush=True)
@@ -29,6 +29,21 @@ def cmd_scrape(args: argparse.Namespace) -> int:
 
     agenda = scrape(args.out, args.cache_dir, refresh=args.refresh, workers=args.workers)
     print(f'{agenda["total_tracks"]} sessions -> {args.out}')
+    if config.GeminiSettings.from_env().enabled:
+        return cmd_embed(args)
+    print('GEMINI_API_KEY not set: skipping embeddings (run `oxp-agenda embed` later)')
+    return 0
+
+
+def cmd_embed(args: argparse.Namespace) -> int:
+    from oxp_agenda.catalog import load_agenda
+    from oxp_agenda.semantic import SemanticIndex
+
+    settings = config.GeminiSettings.from_env()
+    agenda_path = getattr(args, 'out', config.AGENDA_PATH)
+    index = SemanticIndex(load_agenda(agenda_path), config.EMBEDDINGS_PATH, settings)
+    done = index.build()
+    print(f'embedded {done} new/changed sessions -> {config.EMBEDDINGS_PATH}')
     return 0
 
 
@@ -42,12 +57,15 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument('-p', '--port', type=int, default=9099)
     serve.set_defaults(func=cmd_serve)
 
-    scrape = sub.add_parser('scrape', help='refresh web/data/agenda.json from odoo.com')
+    scrape = sub.add_parser('scrape', help='refresh web/data/agenda.json from odoo.com (and embeddings)')
     scrape.add_argument('--out', type=Path, default=config.AGENDA_PATH)
     scrape.add_argument('--cache-dir', type=Path, default=config.CACHE_DIR / 'pages')
     scrape.add_argument('--refresh', action='store_true', help='ignore cached pages and download again')
     scrape.add_argument('--workers', type=int, default=16)
     scrape.set_defaults(func=cmd_scrape)
+
+    embed = sub.add_parser('embed', help='(re)compute session embeddings for semantic search')
+    embed.set_defaults(func=cmd_embed)
     return parser
 
 

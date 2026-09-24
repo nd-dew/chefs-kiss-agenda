@@ -36,7 +36,7 @@ def test_serves_the_front_end(server):
 
 
 def test_health_reports_ai_status(server, server_without_key):
-    assert json.loads(get(f'{server}/api/health')[2]) == {'ai': True, 'model': 'fake'}
+    assert json.loads(get(f'{server}/api/health')[2]) == {'ai': True, 'model': 'fake', 'semantic': False}
     assert json.loads(get(f'{server_without_key}/api/health')[2])['ai'] is False
 
 
@@ -57,6 +57,20 @@ def test_chat_rejects_bad_requests(server):
 def test_chat_without_key_is_unavailable(server_without_key):
     status, raw = post_chat(server_without_key, {'messages': [{'role': 'user', 'content': 'hi'}]})
     assert status == 503 and 'GEMINI_API_KEY' in raw
+
+
+def test_search_without_index_reports_keyword_only(server):
+    assert json.loads(get(f'{server}/api/search?q=football')[2]) == {
+        'semantic': False,
+        'confident': False,
+        'results': [],
+    }
+
+
+def test_search_requires_a_query(server):
+    with pytest.raises(urllib.error.HTTPError) as err:
+        get(f'{server}/api/search?q=')
+    assert err.value.code == 400
 
 
 def test_unknown_api_route_is_404(server):
