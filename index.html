@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Odoo Experience 2026 — Interactive Agenda & Schedule</title>
+  <meta name="description" content="A fast, clean, searchable agenda and personal schedule builder for Odoo Experience 2026. Explore 480+ talks, 24 rooms, live streams, and speaker bios." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟣</text></svg>">
+</head>
+<body class="theme-dark">
+  <!-- Top Banner / Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <span class="logo-circle">OXP</span>
+        </div>
+        <div class="brand-titles">
+          <div class="brand-topline">
+            <span class="badge-edition">Odoo Experience 2026</span>
+            <span class="event-meta">📍 Brussels Expo, Belgium • Sep 22–26</span>
+          </div>
+          <h1 class="brand-heading">Agenda & Schedule Explorer</h1>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Quick Stats Badge -->
+        <div class="stats-badge" id="statsBadge" title="Total talks available">
+          <span class="stats-count" id="totalTalksCount">484</span>
+          <span class="stats-label">Talks</span>
+        </div>
+
+        <!-- My Schedule Counter Pill -->
+        <button class="action-btn my-schedule-pill" id="myScheduleBtn" title="View your saved talks and calendar">
+          <span class="star-icon">★</span>
+          <span>My Schedule</span>
+          <span class="pill-count" id="favoritesCount">0</span>
+        </button>
+
+        <!-- Export Menu Dropdown -->
+        <div class="dropdown-wrapper">
+          <button class="action-btn icon-btn" id="exportMenuBtn" title="Export Schedule" aria-label="Export Schedule">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="btn-text">Export</span>
+          </button>
+          <div class="dropdown-menu" id="exportDropdown">
+            <button class="dropdown-item" id="exportIcsFavorites">
+              <span class="icon">📅</span>
+              <div>
+                <strong>Export My Schedule (.ICS)</strong>
+                <small>For Apple Calendar, Google & Outlook</small>
+              </div>
+            </button>
+            <button class="dropdown-item" id="exportIcsAll">
+              <span class="icon">🗓️</span>
+              <div>
+                <strong>Export All Talks (.ICS)</strong>
+                <small>Full conference calendar file</small>
+              </div>
+            </button>
+            <button class="dropdown-item" id="exportCsvBtn">
+              <span class="icon">📊</span>
+              <div>
+                <strong>Export Table (.CSV)</strong>
+                <small>Filtered talks in spreadsheet format</small>
+              </div>
+            </button>
+            <button class="dropdown-item" id="exportJsonBtn">
+              <span class="icon">💻</span>
+              <div>
+                <strong>Export Raw Data (.JSON)</strong>
+                <small>Complete structured dataset</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="action-btn icon-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Controls Navigation Bar -->
+  <nav class="sticky-nav">
+    <div class="nav-container">
+      <!-- Days Tabs -->
+      <div class="days-bar" id="daysBar" role="tablist">
+        <!-- Rendered via JavaScript -->
+      </div>
+
+      <!-- Views Switcher & Search Row -->
+      <div class="view-and-search-row">
+        <!-- View Switcher -->
+        <div class="view-switcher" role="tablist" aria-label="Schedule Views">
+          <button class="view-btn active" data-view="timeline" id="viewBtnTimeline" title="Chronological timeline view (T)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>Timeline</span>
+          </button>
+          <button class="view-btn" data-view="grid" id="viewBtnGrid" title="Visual Room Matrix Grid (G)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Room Grid</span>
+          </button>
+          <button class="view-btn" data-view="by_room" id="viewBtnByRoom" title="Filter sequentially by room (R)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>
+            <span>By Room</span>
+          </button>
+          <button class="view-btn" data-view="favorites" id="viewBtnFavorites" title="My Bookmarked Schedule (M)">
+            <span class="star-icon">★</span>
+            <span>My Schedule</span>
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-box-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search talk, speaker, room, AI, accounting... (Press / to search)" autocomplete="off" />
+          <button class="search-clear-btn" id="searchClearBtn" title="Clear search (Esc)" aria-label="Clear search">✕</button>
+          <kbd class="search-kbd">/</kbd>
+        </div>
+      </div>
+
+      <!-- Quick Topic Chips -->
+      <div class="chips-container" id="chipsContainer">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Secondary Filters Bar -->
+      <div class="secondary-filters-bar" id="secondaryFiltersBar">
+        <div class="filter-group">
+          <label for="roomSelect" class="filter-label">Room:</label>
+          <select id="roomSelect" class="filter-select">
+            <option value="all">All Rooms (24)</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="tagSelect" class="filter-label">Topic / Tag:</label>
+          <select id="tagSelect" class="filter-select">
+            <option value="all">All Tags</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="checkbox-label" title="Show only sessions with YouTube live stream or video">
+            <input type="checkbox" id="videoOnlyCheck" />
+            <span>🎥 Live Stream / Video Only</span>
+          </label>
+        </div>
+
+        <div class="filter-group active-filters-summary" id="activeFiltersSummary">
+          <!-- Active filters count & reset -->
+          <button class="reset-filters-btn" id="resetFiltersBtn" style="display: none;">
+            ✕ Reset Filters
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content" id="mainContent">
+    <!-- Loading State -->
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <p>Loading OXP 2026 Schedule & Tracks...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon">🔍</div>
+      <h3>No sessions found</h3>
+      <p>Try loosening your search keywords or clearing active filters.</p>
+      <button class="action-btn" id="emptyResetBtn">Clear All Filters</button>
+    </div>
+
+    <!-- View Containers -->
+    <section id="timelineContainer" class="view-container timeline-view"></section>
+    <section id="gridContainer" class="view-container grid-view" style="display: none;"></section>
+    <section id="byRoomContainer" class="view-container by-room-view" style="display: none;"></section>
+    <section id="favoritesContainer" class="view-container favorites-view" style="display: none;"></section>
+  </main>
+
+  <!-- Detail Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <div class="modal-badges" id="modalBadges"></div>
+        <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-body" id="modalBody">
+        <!-- Video Player (if available) -->
+        <div class="video-container" id="modalVideoContainer" style="display: none;">
+          <iframe id="modalVideoIframe" src="" title="Talk Stream" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        </div>
+
+        <!-- Title -->
+        <h2 class="modal-title" id="modalTitle"></h2>
+
+        <!-- Event Logistics Info Bar -->
+        <div class="modal-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">📅 Date & Time</span>
+            <span class="meta-value" id="modalDateTime"></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">📍 Location</span>
+            <span class="meta-value" id="modalLocation"></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">⏱️ Duration</span>
+            <span class="meta-value" id="modalDuration"></span>
+          </div>
+        </div>
+
+        <!-- Speaker Section -->
+        <div class="modal-speaker-card" id="modalSpeakerCard" style="display: none;">
+          <img class="speaker-avatar-large" id="modalSpeakerAvatar" src="" alt="Speaker Avatar" />
+          <div class="speaker-info">
+            <div class="speaker-name" id="modalSpeakerName"></div>
+            <div class="speaker-role" id="modalSpeakerRole"></div>
+            <div class="speaker-bio" id="modalSpeakerBio"></div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="modal-description-section">
+          <h3>About this Session</h3>
+          <div class="modal-description-content" id="modalDescription"></div>
+        </div>
+
+        <!-- Actions Footer -->
+        <div class="modal-actions-bar">
+          <button class="action-btn primary modal-fav-btn" id="modalFavBtn">
+            <span class="star-icon">★</span>
+            <span id="modalFavText">Add to My Schedule</span>
+          </button>
+
+          <a href="#" target="_blank" rel="noopener" class="action-btn" id="modalGcalBtn" title="Add to Google Calendar">
+            <span>📅 Google Calendar</span>
+          </a>
+
+          <button class="action-btn" id="modalIcsBtn" title="Download .ICS for Apple/Outlook Calendar">
+            <span>📥 Download .ICS</span>
+          </button>
+
+          <a href="#" target="_blank" rel="noopener" class="action-btn" id="modalOdooLinkBtn" title="Open original page on Odoo.com">
+            <span>🔗 Odoo.com</span>
+          </a>
+
+          <button class="action-btn icon-btn" id="modalShareBtn" title="Copy link to this talk">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Scroll to Top Button -->
+  <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top" aria-label="Scroll to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+
+  <script src="app.js"></script>
+</body>
+</html>
