@@ -3,10 +3,15 @@
 A clean, fast explorer for the **Odoo Experience 2026** schedule (484 sessions, Sep 22–26, Brussels Expo),
 with a timetable view, rich filtering, a personal schedule and a Gemini-powered assistant that knows every talk.
 
-- **Timetable** (default): rooms × time, sticky headers, keynotes/lunch as full-width bands, a live "now" line
+- **Timetable** (default): rooms × time, sticky headers, keynotes/lunch as full-width bands, a live "now" line;
+  hours before 10:00 and after 18:00 (only welcome, keynotes, dinner and concerts) are squeezed
 - **List** (default on phones) and **Saved** views; overlap detection; Google Calendar / `.ics` export
-- **Filters**: room (grouped by venue), track, level, language, format, any tag, has video, saved, hide past,
-  all with live counts; full-text search; state kept in the URL so views can be shared
+- **One-row header**: days, search, a language picker, and a single **Filters** panel for room (grouped by venue),
+  track, level, format, tags, has video, saved and hide past, with live counts. Active filters show as removable
+  chips. Everything is kept in the URL, so views can be shared
+- **Smart search**: instant keyword matches; if the day has few or none, results widen automatically to other days
+  and then to talks *related by meaning* (Gemini embeddings), e.g. "how to speed up my database" → the PostgreSQL talks
+- **Language** of every talk: Odoo's tag when present, otherwise detected from the title and abstract
 - **Details**: hover card on desktop, side panel with speaker, abstract, video and related talks
 - **Ask AI** (`A`): answers grounded on the full agenda; cited sessions appear as clickable, starrable cards
 - Dark/light themes, mobile-first layout, keyboard shortcuts
@@ -31,10 +36,21 @@ Add `?now=2026-09-24T14:10` to the URL to preview the live "now" state at any mo
 ```bash
 uv run oxp-agenda scrape            # uses cached pages in ~/.cache/oxp-agenda
 uv run oxp-agenda scrape --refresh  # download everything again
+uv run oxp-agenda embed             # (re)embed new or edited talks; scrape runs this when a key is set
 ```
 
 This parses the agenda tables on odoo.com and every talk page (description, speaker bio, photo, video), then
-writes `web/data/agenda.json`.
+writes `web/data/agenda.json`, and updates the embeddings in `data/embeddings.json`.
+
+## How semantic search works
+
+Each talk (title, speakers, tags, abstract) is embedded once with `gemini-embedding-001` at 256 dimensions and
+stored int8-quantised in `data/embeddings.json` (~200 KB, keyed by content hash, so only changed talks are
+re-embedded; the server also fills gaps in the background at start-up). `GET /api/search?q=` embeds the query
+and ranks talks by cosine similarity. Raw scores bunch together (≈0.6–0.75) for any query, so each hit also gets
+a z-score against that query's distribution. Results are only trusted when the best match stands out
+(z ≥ 3.5), and a talk counts as related at z ≥ 3.0. That keeps gibberish or off-topic queries from producing
+noise. Without a key the app falls back to keyword search.
 
 ## How the assistant works
 
@@ -54,7 +70,8 @@ prompt would.
 | --- | --- | --- | --- |
 | `/` | Search | `G` / `L` / `S` | Timetable / List / Saved |
 | `1`–`5`, `←` `→` | Change day | `N` | Jump to now |
-| `A` | Ask AI | `D` | Toggle dark mode |
+| `A` | Ask AI | `F` | Filters |
+| `D` | Toggle dark mode | | |
 | `Esc` | Close menu, panel or chat; clear search | | |
 
 ## Project layout
@@ -66,6 +83,7 @@ src/oxp_agenda/        Python package (CLI: oxp-agenda)
   server.py            static files + /api/chat, /api/health
   gemini.py            request building and SSE streaming
   catalog.py           agenda -> assistant system prompt
+  semantic.py          embeddings cache + /api/search ranking
   scraper.py           odoo.com agenda + talk pages -> agenda.json
 web/                   the app (served as-is)
   index.html
@@ -73,11 +91,13 @@ web/                   the app (served as-is)
   js/app.js            entry: render loop, actions, event wiring
   js/agenda.js         dataset prep      js/state.js     filters, saved, URL hash
   js/taxonomy.js       tags -> tracks…   js/calendar.js  Google Calendar / .ics
+  js/search.js         semantic lookups  js/views/results.js  widening search results
   js/views/            timetable, list, saved, shared parts
   js/ui/               filter bar & theme, facet menu, popover, drawer, toast
   js/chat/             panel, SSE client, safe Markdown renderer
   js/lib/              html, time, storage, dom, event bus
   data/agenda.json
+data/embeddings.json   session vectors for semantic search
 tests/                 pytest (Python + runs tests/js) · js/ node:test · e2e/ Playwright
 ```
 

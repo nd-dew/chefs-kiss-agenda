@@ -72,6 +72,31 @@ export const optLabel = (facet, value) => (OPTIONS[facet]?.find(o => o.id === va
 
 export const trackOf = t => TRACKS.find(d => d.id === t.tracks[0]);
 
+// Few talks carry a language tag, so the language is also guessed from stop words
+// (title weighted 3x). A tag always wins; anything unclear counts as English.
+const STOP_WORDS = {
+  en: 'the and for with your how to of in is our you what why from this are can',
+  fr: 'le la les de des du et pour avec vous votre vos une en dans est sur nos notre comment pourquoi au aux qui que quoi neuf sans plus ton ta tes je j l d ou',
+  nl: 'de het een en van voor met je jouw onze wat hoe is niet naar bij ook uw',
+};
+const STOP_SETS = Object.entries(STOP_WORDS).map(([lang, words]) => [lang, new Set(words.split(' '))]);
+const wordsOf = text => String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z]+/g) || [];
+
+export function detectLanguage(title, description = '') {
+  const hits = (words, set) => words.filter(w => set.has(w)).length;
+  const titleWords = wordsOf(title);
+  // The title is written in the talk's language even when the abstract is in English.
+  const byTitle = STOP_SETS.map(([lang, set]) => [lang, hits(titleWords, set)]).sort((a, b) => b[1] - a[1]);
+  const [[titleLang, titleHits], [, titleRunnerUp]] = byTitle;
+  if (titleLang !== 'en' && titleHits >= 2 && titleHits > titleRunnerUp) return titleLang;
+
+  const bodyWords = wordsOf(String(description).slice(0, 600));
+  const ranked = STOP_SETS.map(([lang, set]) => [lang, hits(bodyWords, set) + 3 * hits(titleWords, set)])
+    .sort((a, b) => b[1] - a[1]);
+  const [[best, score], [, runnerUp]] = ranked;
+  return score >= 3 && score > runnerUp * 1.5 ? best : 'en';
+}
+
 const matching = (defs, badges, t) =>
   defs.filter(d => d.test?.(t) || d.tags?.some(x => badges.has(x))).map(d => d.id);
 
@@ -85,7 +110,10 @@ export function classify(t, plenary) {
   return {
     tracks,
     levels: matching(LEVELS, badges, t),
-    langs: matching(LANGS, badges, t),
+    langs: plenary ? [] : (() => {
+      const tagged = matching(LANGS, badges, t);
+      return tagged.length ? tagged : [detectLanguage(t.title, t.description)];
+    })(),
     formats: matching(FORMATS, badges, t),
     hue: colour.h,
     sat: colour.sat || '',

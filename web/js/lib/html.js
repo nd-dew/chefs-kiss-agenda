@@ -5,17 +5,17 @@ const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ESCAPES[c]);
 
 /** Lowercase and strip accents, for accent-insensitive search. */
-export const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** Returns a function that escapes text and wraps every search term in <mark>. */
+/** Returns a function that escapes text and wraps search terms (at word starts) in <mark>. */
 export function highlighter(query) {
   const terms = String(query || '').trim().split(/\s+/)
-    .filter(w => w.length > 1)
+    .filter(w => w.length > 2)
     .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   if (!terms.length) return esc;
-  const re = new RegExp(`(${terms.join('|')})`, 'gi');
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])(${terms.join('|')})`, 'giu');
   return text => String(text).split(re).map((part, i) => (i % 2 ? `<mark>${esc(part)}</mark>` : esc(part))).join('');
 }
 

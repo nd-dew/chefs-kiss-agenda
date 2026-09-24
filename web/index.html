@@ -19,28 +19,25 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand">
+      <div class="brand" title="Odoo Experience 2026 · Brussels Expo">
         <span class="brand-mark" aria-hidden="true"></span>
-        <div class="brand-text">
-          <strong>OXP 2026</strong>
-          <span>Brussels Expo</span>
-        </div>
+        <strong>OXP 2026</strong>
       </div>
 
       <nav class="days" id="days" aria-label="Conference day"></nav>
 
       <label class="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="Search talks, speakers, rooms, tags…" autocomplete="off" spellcheck="false">
+        <input id="q" type="search" placeholder="Search talks, speakers, rooms…" autocomplete="off" spellcheck="false">
         <kbd>/</kbd>
       </label>
 
+      <div class="controls" id="controls"></div>
       <div class="views" id="views" role="tablist" aria-label="View"></div>
-
       <button class="icon-btn" id="theme" type="button" aria-label="Toggle dark mode" title="Toggle theme (D)"></button>
     </header>
 
-    <div class="filterbar" id="filterbar"></div>
+    <div class="activebar" id="activebar" hidden></div>
 
     <main id="main" tabindex="-1"></main>
   </div>

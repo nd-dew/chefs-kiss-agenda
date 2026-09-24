@@ -1,6 +1,6 @@
 // Small HTML building blocks shared by the views, drawer, popover and chat.
 
-import { db } from '../agenda.js';
+import { db, dayOf } from '../agenda.js';
 import { I } from '../icons.js';
 import { esc, highlighter } from '../lib/html.js';
 import { dur, hhmm, isLive, isPast } from '../lib/time.js';
@@ -46,7 +46,7 @@ export function tagChips(t, { max = 99, clickable = false } = {}) {
 }
 
 /** A session as a card row (list view, saved view, drawer "related" lists). */
-export function rowHTML(t, n, { time = false, extra = '' } = {}) {
+export function rowHTML(t, n, { time = false, day = false, extra = '' } = {}) {
   const tk = trackOf(t);
   const meta = [
     `<span>${I.pin}${t.plenary ? 'All venues' : hl(t.room_str)}</span>`,
@@ -59,7 +59,7 @@ export function rowHTML(t, n, { time = false, extra = '' } = {}) {
     extra,
   ].join('');
   return `<article class="row${t.plenary ? ' plen' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="${hueStyle(t)}">
-    ${time ? `<div class="time-col"><b>${hhmm(t.s)}</b><small>${hhmm(t.e)}</small></div>` : ''}
+    ${time ? `<div class="time-col">${day ? `<small class="tc-day">${esc(dayOf(t).short_label.replace(' Sep', ''))}</small>` : ''}<b>${hhmm(t.s)}</b><small>${hhmm(t.e)}</small></div>` : ''}
     <div class="bar"></div>
     <div class="row-main">
       <h3 class="row-title">${hl(t.title)}</h3>
@@ -71,14 +71,15 @@ export function rowHTML(t, n, { time = false, extra = '' } = {}) {
 }
 
 /** "Also matching: 12 on Fri 25 …" when searching/filtering. */
-export function otherDaysHint(n) {
+export function otherDaysHint(n, extra = '') {
   if (!state.q && !activeFilterCount()) return '';
   const terms = queryTerms();
   const parts = db.days.filter(d => d.date !== state.day).map(d => {
     const c = db.byDay.get(d.date).filter(t => (!t.plenary || terms.length) && passes(t, null, terms, n)).length;
     return c ? `<button data-day="${d.date}">${c} on ${esc(d.short_label.replace(/ Sep/, ''))}</button>` : '';
   }).filter(Boolean);
-  return parts.length ? `<div class="hint">Also matching: ${parts.join('')}</div>` : '';
+  if (extra) parts.push(extra);
+  return parts.length ? `<div class="hint">Also: ${parts.join('')}</div>` : '';
 }
 
 export const emptyState = n => `<div class="empty"><div>${I.search}<h3>No sessions match</h3>

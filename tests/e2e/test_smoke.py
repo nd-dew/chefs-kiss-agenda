@@ -35,7 +35,7 @@ def page(browser, server):
 
 
 def test_timetable_is_the_default_view(page):
-    assert page.locator('.day[aria-selected="true"] b').inner_text() == 'Thu 24'
+    assert page.locator('.day[aria-selected="true"]').inner_text().strip() == 'Thu 24'
     assert page.locator('.tt-room').count() >= 10
     assert page.locator('.now-line').count() == 1
 
@@ -50,12 +50,32 @@ def test_hover_card_and_drawer(page):
     assert page.locator('.dr-title').inner_text() == title
 
 
+def test_header_is_one_row(page):
+    assert page.locator('.topbar').bounding_box()['height'] <= 60
+
+
 def test_room_filter_and_url_state(page):
-    page.click('[data-facet=rooms]')
-    page.click('[data-opt="Hall 6.A"]')
+    page.click('[data-menu=filters]')
+    page.click('[data-chip="rooms|Hall 6.A"]')
     page.keyboard.press('Escape')
     assert page.locator('.tt-room').count() == 1
     assert 'rooms=Hall+6.A' in page.url
+    assert page.locator('.achip').count() == 1  # removable chip shows the active filter
+    page.locator('.achip').click()
+    assert page.locator('.tt-room').count() > 1
+
+
+def test_language_selector(page):
+    page.click('[data-menu=langs]')
+    page.click('[data-lang=fr]')
+    assert 'langs=fr' in page.url
+    assert page.locator('[data-menu=langs]').inner_text().strip().startswith('French')
+
+
+def test_search_widens_to_other_days(page):
+    page.fill('#q', 'Eden Hazard')  # only on Saturday
+    page.wait_for_selector('.results')
+    assert 'Saturday' in page.locator('.res-h h2').first.inner_text()
 
 
 def test_star_and_saved_view(page):

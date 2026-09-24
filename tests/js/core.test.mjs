@@ -9,9 +9,9 @@ import { parseEvents } from '../../web/js/chat/client.js';
 import { refsIn, renderMarkdown, replaceRefs } from '../../web/js/chat/markdown.js';
 import { esc, highlighter, norm } from '../../web/js/lib/html.js';
 import { dur, hhmm, isLive, isPast, toMin, utcStamp } from '../../web/js/lib/time.js';
-import { classify, optLabel, venueOf } from '../../web/js/taxonomy.js';
+import { classify, detectLanguage, optLabel, venueOf } from '../../web/js/taxonomy.js';
 import { conflictsOf } from '../../web/js/views/saved.js';
-import { lanes, timeWindow } from '../../web/js/views/timetable.js';
+import { lanes, PX_PER_MIN, PX_PER_MIN_EDGE, timeScale, timeWindow } from '../../web/js/views/timetable.js';
 
 const raw = JSON.parse(readFileSync(new URL('../../web/data/agenda.json', import.meta.url)));
 const db = prepare(raw);
@@ -34,6 +34,9 @@ test('html helpers escape and highlight', () => {
   assert.equal(norm('Comptabilité'), 'comptabilite');
   assert.equal(highlighter('pos')('New POS <b>'), 'New <mark>POS</mark> &lt;b&gt;');
   assert.equal(highlighter('')('<x>'), '&lt;x&gt;');
+  // Only at word starts, and short words are ignored.
+  assert.equal(highlighter('to up rium')('Auditorium to Group'), 'Auditorium to Group');
+  assert.equal(highlighter('Comp')('Quoi de neuf dans Comptabilité'), 'Quoi de neuf dans <mark>Comp</mark>tabilité');
 });
 
 test('taxonomy folds tags into facets', () => {
@@ -45,6 +48,23 @@ test('taxonomy folds tags into facets', () => {
   assert.equal(optLabel('tracks', 'finance'), 'Accounting & Finance');
   assert.equal(venueOf('Hall 6.B'), 'Hall 6');
   assert.equal(venueOf('Masterclass Room 3'), 'Masterclass rooms');
+});
+
+test('language detection prefers the title', () => {
+  assert.equal(detectLanguage('Quoi de neuf dans Comptabilité ?', 'Discover what is new in the accounting app and how to use it.'), 'fr');
+  assert.equal(detectLanguage('Hoe de administratie van je business vereenvoudigen ?'), 'nl');
+  assert.equal(detectLanguage('Stop Writing AI Prompts by Hand'), 'en');
+  assert.equal(detectLanguage('Odoo Security 102'), 'en');
+  const tagged = classify({ title: 'Pilotez votre restaurant', badges: ['English'] }, false);
+  assert.deepEqual(tagged.langs, ['en']); // an explicit tag wins
+});
+
+test('timetable squeezes hours outside 10:00-18:00', () => {
+  const y = timeScale(7 * 60 + 30);
+  assert.equal(y(450), 0);
+  assert.equal(y(600), 150 * PX_PER_MIN_EDGE);
+  assert.equal(y(660), 150 * PX_PER_MIN_EDGE + 60 * PX_PER_MIN);
+  assert.equal(y(1140) - y(1080), 60 * PX_PER_MIN_EDGE);
 });
 
 test('prepare indexes the real dataset', () => {

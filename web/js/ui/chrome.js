@@ -6,24 +6,25 @@ import { $ } from '../lib/dom.js';
 import { esc } from '../lib/html.js';
 import { local } from '../lib/storage.js';
 import { now } from '../lib/time.js';
-import { activeFilterCount, FACETS, favs, state } from '../state.js';
-import { optLabel } from '../taxonomy.js';
+import { activeFilterCount, FACETS, FLAGS, favs, state } from '../state.js';
+import { optLabel, OTHER, TRACKS } from '../taxonomy.js';
 
-const FACET_ICONS = { rooms: I.pin, tracks: I.layers, levels: I.level, langs: I.globe, formats: I.mic, tags: I.tag };
 const VIEW_TABS = [
   { id: 'grid', icon: I.grid, label: 'Timetable', key: 'G' },
   { id: 'list', icon: I.list, label: 'List', key: 'L' },
   { id: 'mine', icon: I.star, label: 'Saved', key: 'S' },
 ];
+const CHEVRON = '<svg class="chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+const LANG_CODES = { en: 'EN', fr: 'FR', nl: 'NL' };
 
 export function renderDays() {
   const today = now().date;
   $('#days').innerHTML = db.days.map(d => {
     const [weekday, , day] = d.short_label.split(' ');
     const selected = d.date === state.day && state.view !== 'mine';
-    return `<button class="day" role="tab" data-day="${d.date}" aria-selected="${selected}" title="${esc(d.label)}">
-      ${d.date === today ? '<i class="today-dot" title="Today"></i>' : ''}
-      <b>${weekday} ${day}</b><small>${d.is_masterclass ? 'Masterclass' : `${d.n} talks`}</small></button>`;
+    const title = `${d.label}${d.is_masterclass ? ' · Masterclasses' : ` · ${d.n} talks`}`;
+    return `<button class="day${d.is_masterclass ? ' mc' : ''}" role="tab" data-day="${d.date}" aria-selected="${selected}" title="${esc(title)}">
+      ${d.date === today ? '<i class="today-dot"></i>' : ''}${weekday} ${day}</button>`;
   }).join('');
 }
 
@@ -34,29 +35,42 @@ export function renderViews() {
   }).join('');
 }
 
-const toggleBtn = (flag, icon, label) =>
-  `<button class="fbtn ${state[flag] ? 'active' : ''}" data-flag="${flag}" aria-pressed="${state[flag]}">${icon}<span>${label}</span></button>`;
+/** Number of active filters shown on the Filters button (language has its own control). */
+const filterCount = () => activeFilterCount() - state.langs.size;
 
-export function renderFilterbar([shown, total]) {
-  const bar = $('#filterbar');
-  bar.hidden = state.view === 'mine';
-  if (bar.hidden) return;
+export function renderControls() {
+  const lang = [...state.langs][0];
+  const langLabel = lang ? optLabel('langs', lang) : 'Any language';
+  const n = filterCount();
+  const isToday = state.day === now().date && state.view !== 'mine';
+  $('#controls').innerHTML = `
+    <button class="ctl${lang ? ' active' : ''}" data-menu="langs" aria-haspopup="true" aria-expanded="${state.menu === 'langs'}" title="Language">
+      ${I.globe}<span class="lbl"><span class="full">${esc(langLabel)}</span><span class="short">${lang ? LANG_CODES[lang] : 'All'}</span></span>${CHEVRON}</button>
+    <button class="ctl${n ? ' active' : ''}" data-menu="filters" aria-haspopup="true" aria-expanded="${state.menu === 'filters'}" title="Filters (F)">
+      ${I.sliders}<span class="lbl">Filters</span>${n ? `<span class="n">${n}</span>` : ''}</button>
+    ${isToday ? `<button class="ctl icon" data-act="now" title="Jump to now (N)" aria-label="Jump to now">${I.now}</button>` : ''}`;
+}
 
-  let html = '';
+const FLAG_LABELS = { video: 'Has video', saved: 'Saved', upcoming: 'Hide past' };
+const X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+
+/** Removable chips for every active filter (except language), plus the match count. */
+export function renderActiveBar([shown, total]) {
+  const bar = $('#activebar');
+  const chips = [];
   for (const k in FACETS) {
-    const count = state[k].size;
-    const label = count === 1 ? optLabel(k, [...state[k]][0]) : FACETS[k].label;
-    html += `<button class="fbtn ${count ? 'active' : ''}" data-facet="${k}" aria-haspopup="true" aria-expanded="${state.menu === k}">${FACET_ICONS[k]}<span>${esc(label)}</span>${count > 1 ? `<span class="n">${count}</span>` : ''}</button>`;
+    if (k === 'langs') continue;
+    for (const v of state[k]) {
+      const track = k === 'tracks' ? [...TRACKS, OTHER].find(t => t.id === v) : null;
+      const dot = track ? `<i class="dot" style="--h:${track.h};${track.sat ? `--sat:${track.sat}` : ''}"></i>` : '';
+      chips.push(`<button class="achip" data-chip="${esc(`${k}|${v}`)}" title="Remove">${dot}${esc(optLabel(k, v))}${X}</button>`);
+    }
   }
-  html += '<span class="fsep"></span>';
-  html += toggleBtn('video', I.play, 'Has video') + toggleBtn('saved', I.star, 'Saved');
-  if (state.day === now().date) {
-    html += toggleBtn('upcoming', I.eye, 'Hide past');
-    html += `<button class="fbtn" data-act="now">${I.now}<span>Now</span></button>`;
-  }
-  if (activeFilterCount() || state.q) html += '<button class="fclear" data-act="clear">Clear all</button>';
-  html += `<span class="fcount"><b>${shown}</b> of ${total} sessions</span>`;
-  bar.innerHTML = html;
+  for (const f of FLAGS) if (state[f]) chips.push(`<button class="achip" data-flag="${f}" title="Remove">${FLAG_LABELS[f]}${X}</button>`);
+  bar.hidden = state.view === 'mine' || (!chips.length && !state.q);
+  if (bar.hidden) return;
+  bar.innerHTML = `${chips.join('')}${chips.length ? '<button class="fclear" data-act="clear">Clear all</button>' : ''}
+    <span class="acount"><b>${shown}</b> of ${total} sessions${state.q ? ` for “${esc(state.q)}”` : ''}</span>`;
 }
 
 // ---------------------------------------------------------------- theme

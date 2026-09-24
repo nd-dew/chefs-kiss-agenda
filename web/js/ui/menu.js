@@ -1,74 +1,121 @@
-// Facet dropdown (a bottom sheet on phones) with live per-option counts.
+// Header popovers (bottom sheets on phones): the language picker and the Filters panel.
 
 import { db } from '../agenda.js';
 import { I } from '../icons.js';
+import { emit } from '../lib/bus.js';
 import { $, isPhone } from '../lib/dom.js';
 import { esc, norm } from '../lib/html.js';
-import { emit } from '../lib/bus.js';
 import { now } from '../lib/time.js';
-import { FACETS, passes, queryTerms, state } from '../state.js';
+import { dayCounts, FACETS, passes, queryTerms, state } from '../state.js';
 import { FORMATS, LANGS, LEVELS, OTHER, TRACKS, venueOf } from '../taxonomy.js';
 
-const MENU_WIDTH = 312;
+const TAG_LIMIT = 30;
 
-function allOptions(facet) {
-  switch (facet) {
-    case 'rooms': return db.rooms.map(r => ({ v: r, label: r, group: venueOf(r) }));
-    case 'tracks': return [...TRACKS, OTHER].map(o => ({ v: o.id, label: o.label, h: o.h, sat: o.sat }));
-    case 'levels': return LEVELS.map(o => ({ v: o.id, label: o.label }));
-    case 'langs': return LANGS.map(o => ({ v: o.id, label: o.label }));
-    case 'formats': return FORMATS.map(o => ({ v: o.id, label: o.label }));
-    default: return db.tags.map(v => ({ v, label: v }));
-  }
-}
+const daySessions = () => (db.byDay.get(state.day) || []).filter(t => !t.plenary);
 
-const tally = (sessions, facet) => {
-  const counts = new Map();
-  sessions.forEach(t => FACETS[facet].get(t).forEach(v => counts.set(v, (counts.get(v) || 0) + 1)));
-  return counts;
-};
-
-/** Options that exist on the current day (or are selected). */
-export function facetOptions(facet) {
-  const base = tally((db.byDay.get(state.day) || []).filter(t => !t.plenary), facet);
-  return allOptions(facet).filter(o => base.get(o.v) || state[facet].has(o.v));
-}
-
-export function renderMenu() {
-  const menu = $('#menu');
-  const facet = state.menu;
-  const f = FACETS[facet];
+/** value -> count of today's talks that would match if `facet` were ignored. */
+function counts(facet) {
   const terms = queryTerms();
   const n = now();
-  // Counts ignore this facet's own selection: "how many if I tick this too".
-  const counts = tally((db.byDay.get(state.day) || []).filter(t => !t.plenary && passes(t, facet, terms, n)), facet);
-  const mq = norm(state.menuQ);
-  const opts = facetOptions(facet).filter(o => !mq || norm(o.label).includes(mq));
+  const out = new Map();
+  daySessions().filter(t => passes(t, facet, terms, n))
+    .forEach(t => FACETS[facet].get(t).forEach(v => out.set(v, (out.get(v) || 0) + 1)));
+  return out;
+}
 
-  let body = '';
-  let lastGroup = null;
-  for (const o of opts) {
-    if (o.group && o.group !== lastGroup) {
-      lastGroup = o.group;
-      const members = opts.filter(x => x.group === o.group);
-      const toggle = members.length > 1
-        ? `<button data-group="${esc(o.group)}">${members.every(x => state[facet].has(x.v)) ? 'None' : 'All'}</button>`
-        : '';
-      body += `<div class="menu-group"><span>${esc(o.group)}</span>${toggle}</div>`;
-    }
-    const c = counts.get(o.v) || 0;
-    const on = state[facet].has(o.v);
+/** Values of `facet` that exist on the current day (or are selected). */
+function presentValues(facet) {
+  const present = new Set(daySessions().flatMap(t => FACETS[facet].get(t)));
+  return v => present.has(v) || state[facet].has(v);
+}
+
+// ---------------------------------------------------------------- language picker
+function renderLanguages() {
+  const c = counts('langs');
+  const total = [...c.values()].reduce((a, b) => a + b, 0);
+  const option = (value, label, count) => {
+    const on = value ? state.langs.has(value) : !state.langs.size;
+    return `<button class="opt" role="menuitemradio" aria-checked="${on}" data-lang="${value}">
+      <span class="radio"></span><span class="lbl">${esc(label)}</span><span class="cnt">${count}</span></button>`;
+  };
+  return `<div class="menu-head"><h3>Language</h3></div>
+    <div class="menu-list" role="menu">${option('', 'Any language', total)}${LANGS.map(l => option(l.id, l.label, c.get(l.id) || 0)).join('')}</div>`;
+}
+
+// ---------------------------------------------------------------- filters panel
+function chip(facet, value, label, count, extra = '') {
+  const on = state[facet].has(value);
+  return `<button class="chip${on ? ' on' : ''}${count || on ? '' : ' zero'}" aria-pressed="${on}" data-chip="${esc(`${facet}|${value}`)}">${extra}${esc(label)}<span class="cnt">${count}</span></button>`;
+}
+
+function section(title, body, aside = '') {
+  return body ? `<section class="fp-sec"><div class="fp-h"><h4>${title}</h4>${aside}</div><div class="chips">${body}</div></section>` : '';
+}
+
+function chipsFor(facet, options) {
+  const c = counts(facet);
+  const present = presentValues(facet);
+  return options.filter(o => present(o.id)).map(o => {
     const dot = o.h != null ? `<i class="dot" style="--h:${o.h};${o.sat ? `--sat:${o.sat}` : ''}"></i>` : '';
-    body += `<button class="opt ${c || on ? '' : 'zero'}" role="menuitemcheckbox" aria-checked="${on}" data-opt="${esc(o.v)}">
-      <span class="box">${I.check}</span>${dot}<span class="lbl">${esc(o.label)}</span><span class="cnt">${c}</span></button>`;
-  }
+    return chip(facet, o.id, o.label, c.get(o.id) || 0, dot);
+  }).join('');
+}
 
+function roomSections() {
+  const c = counts('rooms');
+  const present = presentValues('rooms');
+  const venues = new Map();
+  db.rooms.filter(present).forEach(r => venues.set(venueOf(r), [...(venues.get(venueOf(r)) || []), r]));
+  return [...venues].map(([venue, rooms]) => {
+    const short = r => (r === venue ? r : r.slice(venue.length).replace(/^[\s.]+/, '') || r);
+    const all = rooms.length > 1
+      ? `<button class="fp-all" data-group="${esc(venue)}">${rooms.every(r => state.rooms.has(r)) ? 'None' : 'All'}</button>`
+      : '';
+    return `<div class="fp-venue"><span class="fp-vname">${esc(venue)}</span>${all}<div class="chips">${rooms.map(r => chip('rooms', r, short(r), c.get(r) || 0)).join('')}</div></div>`;
+  }).join('');
+}
+
+function tagChips() {
+  const c = counts('tags');
+  const present = presentValues('tags');
+  const q = norm(state.menuQ);
+  const tags = db.tags.filter(present).filter(t => !q || norm(t).includes(q));
+  const shown = [...new Set([...[...state.tags].filter(t => tags.includes(t)), ...tags])].slice(0, q ? 80 : TAG_LIMIT);
+  return shown.map(t => chip('tags', t, t, c.get(t) || 0)).join('') || '<span class="fp-empty">No tags match</span>';
+}
+
+function toggle(flag, icon, label) {
+  const on = state[flag];
+  return `<button class="chip${on ? ' on' : ''}" aria-pressed="${on}" data-flag="${flag}">${icon}${label}</button>`;
+}
+
+function renderFilters() {
+  const [shown, total] = dayCounts();
+  const today = state.day === now().date;
+  const show = toggle('video', I.play, 'Has video') + toggle('saved', I.star, 'Saved') + (today ? toggle('upcoming', I.eye, 'Hide past') : '');
+  const tagSearch = `<label class="menu-search fp-search">${I.search}<input id="menu-q" type="search" placeholder="Find a tag…" value="${esc(state.menuQ)}" autocomplete="off"></label>`;
+  return `<div class="menu-head"><h3>Filters</h3><span class="fp-count"><b>${shown}</b> of ${total}</span>
+      <button data-act="clear-filters">Reset</button><button data-act="menu-close">Done</button></div>
+    <div class="fp-body">
+      ${section('Show', show)}
+      ${section('Track', chipsFor('tracks', [...TRACKS, OTHER]))}
+      ${section('Level', chipsFor('levels', LEVELS))}
+      ${section('Format', chipsFor('formats', FORMATS))}
+      <section class="fp-sec"><div class="fp-h"><h4>Room</h4></div>${roomSections()}</section>
+      <section class="fp-sec"><div class="fp-h"><h4>Tags</h4></div>${tagSearch}<div class="chips">${tagChips()}</div></section>
+    </div>`;
+}
+
+// ---------------------------------------------------------------- open / close / render
+export function renderMenu() {
+  const menu = $('#menu');
   const hadFocus = document.activeElement?.id === 'menu-q';
-  const scroll = $('.menu-list', menu)?.scrollTop || 0;
-  menu.innerHTML = `<div class="menu-head"><h3>${f.label}</h3>${state[facet].size ? '<button data-act="menu-clear">Clear</button>' : ''}<button data-act="menu-close" aria-label="Close">Done</button></div>
-    ${f.search ? `<label class="menu-search">${I.search}<input id="menu-q" type="search" placeholder="Filter ${f.label.toLowerCase()}…" value="${esc(state.menuQ)}" autocomplete="off"></label>` : ''}
-    <div class="menu-list" role="menu">${body || '<div class="menu-empty">Nothing here</div>'}</div>`;
-  $('.menu-list', menu).scrollTop = scroll;
+  const scroller = $('.fp-body, .menu-list', menu);
+  const scroll = scroller?.scrollTop || 0;
+  menu.className = `menu menu-${state.menu}`;
+  menu.innerHTML = state.menu === 'langs' ? renderLanguages() : renderFilters();
+  const next = $('.fp-body, .menu-list', menu);
+  if (next) next.scrollTop = scroll;
   if (hadFocus) {
     const input = $('#menu-q');
     input.focus();
@@ -76,20 +123,24 @@ export function renderMenu() {
   }
 }
 
-export function openMenu(facet, button) {
-  if (state.menu === facet) return closeMenu();
-  const r = button.getBoundingClientRect(); // measure before the filter bar re-renders
-  state.menu = facet;
+function place(menu, anchor) {
+  const r = anchor.getBoundingClientRect();
+  const w = menu.offsetWidth;
+  menu.style.left = `${Math.max(12, Math.min(r.right - w, innerWidth - w - 12))}px`;
+  menu.style.top = `${r.bottom + 6}px`;
+}
+
+export function openMenu(name, button) {
+  if (state.menu === name) return closeMenu();
+  state.menu = name;
   state.menuQ = '';
   const menu = $('#menu');
   menu.hidden = false;
-  emit('change');
+  emit('change'); // renders the menu too
   if (isPhone()) {
     $('#scrim').hidden = false;
   } else {
-    menu.style.left = `${Math.max(12, Math.min(r.left, innerWidth - MENU_WIDTH))}px`;
-    menu.style.top = `${r.bottom + 6}px`;
-    $('#menu-q')?.focus();
+    place(menu, $(`[data-menu="${name}"]`) || button);
   }
 }
 
@@ -101,17 +152,23 @@ export function closeMenu() {
   emit('change');
 }
 
-export function toggleOption(value) {
-  const sel = state[state.menu];
+export function setLanguage(value) {
+  state.langs = value ? new Set([value]) : new Set();
+  closeMenu();
+}
+
+export function toggleChip(spec) {
+  const [facet, ...rest] = spec.split('|');
+  const value = rest.join('|');
+  const sel = state[facet];
   sel.has(value) ? sel.delete(value) : sel.add(value);
   emit('change');
 }
 
-export function toggleGroup(group) {
-  const sel = state[state.menu];
-  const members = facetOptions(state.menu).filter(o => o.group === group).map(o => o.v);
-  const all = members.every(v => sel.has(v));
-  members.forEach(v => (all ? sel.delete(v) : sel.add(v)));
+export function toggleRoomGroup(venue) {
+  const rooms = db.rooms.filter(r => venueOf(r) === venue && presentValues('rooms')(r));
+  const all = rooms.every(r => state.rooms.has(r));
+  rooms.forEach(r => (all ? state.rooms.delete(r) : state.rooms.add(r)));
   emit('change');
 }
 
@@ -123,6 +180,6 @@ export function bindMenu() {
     }
   });
   document.addEventListener('pointerdown', e => {
-    if (state.menu && !$('#menu').contains(e.target) && !e.target.closest('[data-facet]')) closeMenu();
+    if (state.menu && !$('#menu').contains(e.target) && !e.target.closest('[data-menu]')) closeMenu();
   });
 }

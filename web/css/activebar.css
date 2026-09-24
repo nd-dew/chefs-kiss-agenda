@@ -1,34 +1,26 @@
-/* Filter bar */
+/* Active filters: a thin row of removable chips, shown only while filtering */
 
-.filterbar {
+.activebar {
   display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px;
+  padding: 7px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   overflow-x: auto; scrollbar-width: none;
   position: relative; z-index: 15;
 }
-.filterbar::-webkit-scrollbar { display: none; }
-.fbtn {
+.activebar::-webkit-scrollbar { display: none; }
+.achip {
   display: inline-flex; align-items: center; gap: 6px; flex: none;
-  height: 30px; padding: 0 10px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); font-size: 13px; font-weight: 500; white-space: nowrap;
-  transition: border-color .15s, background .15s;
+  height: 26px; padding: 0 6px 0 10px; border-radius: 13px;
+  background: var(--accent-soft); color: var(--accent-strong); font-size: 12.5px; font-weight: 500; white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
-.fbtn:hover { border-color: var(--border-strong); background: var(--surface-2); }
-.fbtn svg { width: 14px; height: 14px; color: var(--faint); }
-.fbtn.active { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--accent-soft); color: var(--accent-strong); }
-.fbtn.active svg { color: var(--accent); }
-.fbtn .n {
-  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; line-height: 18px; text-align: center;
-  background: var(--accent); color: var(--accent-contrast); font-weight: 600;
-}
-.fbtn[aria-expanded="true"] { border-color: var(--accent); }
-.fsep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; flex: none; }
-.fcount { margin-left: auto; padding-left: 12px; color: var(--muted); font-size: 12.5px; white-space: nowrap; flex: none; }
-.fcount b { color: var(--text); font-weight: 600; }
+.achip svg { width: 12px; height: 12px; stroke-width: 2.4; opacity: .7; }
+.achip:hover svg { opacity: 1; }
+.achip .dot { width: 7px; height: 7px; }
+.acount { margin-left: auto; padding-left: 12px; color: var(--muted); font-size: 12.5px; white-space: nowrap; flex: none; }
+.acount b { color: var(--text); font-weight: 600; }
 .fclear {
-  flex: none; height: 30px; padding: 0 10px; border-radius: 8px; color: var(--accent); font-size: 13px; font-weight: 500; white-space: nowrap;
+  flex: none; height: 26px; padding: 0 8px; border-radius: 7px; color: var(--accent); font-size: 12.5px; font-weight: 500; white-space: nowrap;
 }
 .fclear:hover { background: var(--accent-soft); }

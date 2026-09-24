@@ -38,14 +38,11 @@
   font-size: 11px; font-weight: 500; color: var(--faint); font-variant-numeric: tabular-nums;
 }
 .tt-hour.half { color: color-mix(in srgb, var(--faint) 55%, transparent); font-size: 10px; }
-.tt-col {
-  grid-row: 2; position: relative;
-  border-left: 1px solid var(--line);
-  background-image:
-    linear-gradient(to bottom, var(--line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
-  background-size: 100% var(--hour), 100% calc(var(--hour) / 2);
-}
+.tt-col { grid-row: 2; position: relative; border-left: 1px solid var(--line); }
+.tt-grid { grid-column: 2 / -1; grid-row: 2; position: relative; pointer-events: none; }
+.tt-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+.tt-line.half { border-top-color: var(--line-soft); }
+.tt-squeeze { position: absolute; left: 0; right: 0; background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 .tt-layer { grid-column: 2 / -1; grid-row: 2; position: relative; pointer-events: none; }
 .tt-layer > * { pointer-events: auto; }
 .tt-nowlayer { grid-column: 1 / -1; grid-row: 2; position: relative; pointer-events: none; z-index: 7; }

@@ -65,3 +65,18 @@
 .empty svg { width: 36px; height: 36px; color: var(--faint); stroke-width: 1.4; margin-bottom: 12px; }
 .empty h3 { margin: 0 0 4px; color: var(--text); font-size: 16px; }
 .empty p { margin: 0 0 16px; font-size: 13.5px; max-width: 360px; }
+
+/* Search results (keyword → other days → related by meaning) */
+.results { padding-top: 12px; }
+.res-sec { margin: 6px 0 22px; }
+.res-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0 2px 10px; }
+.res-h h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; display: inline-flex; align-items: center; gap: 6px; }
+.res-h h2 svg { width: 15px; height: 15px; color: var(--accent); }
+.res-h p { flex-basis: 100%; margin: 0; font-size: 12.5px; color: var(--faint); }
+.res-n { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.res-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 8px; }
+.res-note { display: flex; align-items: center; gap: 8px; margin: 4px 2px 18px; font-size: 13.5px; color: var(--muted); }
+.res-note svg { color: var(--faint); }
+.res-loading { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 13px; padding: 6px 2px; }
+.row .time-col .tc-day { color: var(--accent); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; }
+@media (max-width: 640px) { .res-rows { grid-template-columns: 1fr; } }

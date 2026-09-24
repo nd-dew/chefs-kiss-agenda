@@ -3,6 +3,8 @@
 import { db, load } from './agenda.js';
 import { downloadIcs } from './calendar.js';
 import * as chat from './chat/panel.js';
+import { health } from './chat/client.js';
+import { initSearch, requestSemantic } from './search.js';
 import { emit, on } from './lib/bus.js';
 import { $, isPhone, isTyping } from './lib/dom.js';
 import { esc } from './lib/html.js';
@@ -11,12 +13,13 @@ import {
   clearFilters, dayCounts, defaultDay, favs, loadFavs, passes, queryTerms, readHash, saveFavs, state, writeHash,
 } from './state.js';
 import { optLabel } from './taxonomy.js';
-import { bindTheme, renderDays, renderFilterbar, renderTheme, renderViews } from './ui/chrome.js';
+import { bindTheme, renderActiveBar, renderControls, renderDays, renderTheme, renderViews } from './ui/chrome.js';
 import { closeDrawer, drawerAction, openDrawer, openSession, refreshDrawer } from './ui/drawer.js';
-import { bindMenu, closeMenu, openMenu, renderMenu, toggleGroup, toggleOption } from './ui/menu.js';
+import { bindMenu, closeMenu, openMenu, renderMenu, setLanguage, toggleChip, toggleRoomGroup } from './ui/menu.js';
 import { bindHover, hidePop } from './ui/popover.js';
 import { toast } from './ui/toast.js';
 import { renderList } from './views/list.js';
+import { renderResults } from './views/results.js';
 import { emptyState } from './views/parts.js';
 import { renderSaved } from './views/saved.js';
 import { renderTimetable } from './views/timetable.js';
@@ -30,6 +33,11 @@ function renderMain(n) {
   const dayList = db.byDay.get(state.day) || [];
   const terms = queryTerms();
   const visible = dayList.filter(t => passes(t, null, terms, n));
+  if (state.q.trim()) {
+    // Searching: the timetable stays while the day has hits; otherwise results widen automatically.
+    const hits = visible.some(t => !t.plenary);
+    return state.view === 'grid' && hits ? renderTimetable(visible, dayList, n) : renderResults(n);
+  }
   const html = state.view === 'grid' ? renderTimetable(visible, dayList, n) : renderList(visible, n);
   return html || emptyState(n);
 }
@@ -39,7 +47,8 @@ function render() {
   hidePop();
   renderDays();
   renderViews();
-  renderFilterbar(dayCounts());
+  renderControls();
+  renderActiveBar(dayCounts());
   main.innerHTML = renderMain(n);
   if (state.menu) renderMenu();
   if (state.scrollPending) {
@@ -97,6 +106,7 @@ function setView(view) {
 function clearAll() {
   clearFilters();
   search.value = '';
+  requestSemantic('');
   render();
 }
 
@@ -132,13 +142,17 @@ const ACTIONS = {
   clear: clearAll,
   now: () => scrollToNow(),
   'menu-close': closeMenu,
-  'menu-clear': () => {
-    state[state.menu].clear();
+  'clear-filters': () => {
+    const lang = state.langs;
+    clearFilters();
+    state.langs = lang; // Reset in the Filters panel keeps the language choice
+    state.q = search.value;
     render();
   },
   'ics-mine': () => downloadIcs(db.sessions.filter(t => favs.has(t.id)), 'My_OXP_2026.ics'),
   'clear-favs': clearFavs,
   'ask-ai': () => openSession() && askAbout(openSession()),
+  'ask-q': () => chat.ask(`Which talks are about “${state.q}”? Include close alternatives.`),
 };
 
 // ---------------------------------------------------------------- events
@@ -155,9 +169,10 @@ function onClick(e) {
     return ACTIONS[act]?.();
   }
   if ((el = hit('data-filter'))) return applyFilter(el.dataset.filter);
-  if (state.menu && (el = hit('data-opt'))) return toggleOption(el.dataset.opt);
-  if (state.menu && (el = hit('data-group'))) return toggleGroup(el.dataset.group);
-  if ((el = hit('data-facet'))) return openMenu(el.dataset.facet, el);
+  if ((el = hit('data-lang'))) return setLanguage(el.dataset.lang);
+  if ((el = hit('data-chip'))) return toggleChip(el.dataset.chip);
+  if ((el = hit('data-group'))) return toggleRoomGroup(el.dataset.group);
+  if ((el = hit('data-menu'))) return openMenu(el.dataset.menu, el);
   if ((el = hit('data-flag'))) {
     state[el.dataset.flag] = !state[el.dataset.flag];
     return render();
@@ -175,6 +190,7 @@ function onEscape(e) {
   if (e.target === search) {
     search.value = '';
     state.q = '';
+    requestSemantic('');
     render();
   }
   if (isTyping()) document.activeElement.blur();
@@ -191,6 +207,7 @@ const KEYS = {
   s: () => setView('mine'),
   m: () => setView('mine'),
   a: () => chat.open(),
+  f: () => openMenu('filters'),
   n: () => scrollToNow(),
   d: () => $('#theme').click(),
   arrowleft: () => stepDay(-1),
@@ -242,6 +259,7 @@ function bindEvents() {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
       state.q = search.value;
+      requestSemantic(state.q);
       render();
     }, 90);
   });
@@ -249,6 +267,7 @@ function bindEvents() {
   addEventListener('hashchange', () => {
     readHash();
     search.value = state.q;
+    requestSemantic(state.q);
     state.scrollPending = true;
     render();
   });
@@ -286,6 +305,8 @@ async function boot() {
   if (state.view !== 'mine') state.lastView = state.view;
   search.value = state.q;
   bindEvents();
+  initSearch(await health());
+  requestSemantic(state.q);
   render();
   chat.initChat();
 }
