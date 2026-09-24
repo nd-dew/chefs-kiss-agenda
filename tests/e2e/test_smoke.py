@@ -189,3 +189,11 @@ def test_opening_lands_on_now_even_with_a_stale_url(browser, server):
     )
     assert first_visible == str(17 * 60 + 30)
     context.close()
+
+
+def test_phone_grid_skips_empty_morning_and_evening(phone):
+    phone.evaluate("document.querySelector('#main').scrollTo(0, 0)")
+    first_hour = phone.locator('.tth-hour').first.inner_text()
+    assert first_hour == '11:30'  # Thursday's first talks, not the 07:30 welcome
+    chips = phone.locator('.plen-chip').all_inner_texts()
+    assert any('Keynote' in c for c in chips) and any('Concert' in c for c in chips)

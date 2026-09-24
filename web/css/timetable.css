@@ -155,3 +155,20 @@
   -webkit-line-clamp: unset; max-width: none; max-height: 70vh; padding: 10px 3px; white-space: nowrap;
 }
 .ev.plen.h .ev-title span { margin: 0 0 6px; }
+
+/* Phones: plenaries before/after the talks, as chips above the grid */
+.tth-extra {
+  position: sticky; left: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: 6px;
+  width: 100vw; padding: 8px 12px; border-bottom: 1px solid var(--line);
+  overflow-x: auto; scrollbar-width: none; /* one line, swipe for more */
+}
+.tth-extra::-webkit-scrollbar { display: none; }
+.plen-when { flex: none; font-size: 11px; font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; margin-left: 2px; }
+.plen-when:not(:first-child) { margin-left: 8px; }
+.plen-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px;
+  background: var(--surface); border: 1px solid var(--border); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap;
+}
+.plen-chip span { color: var(--faint); font-variant-numeric: tabular-nums; }
+.plen-chip.is-past { opacity: .55; }
+.plen-chip.is-live { border-color: var(--now); }

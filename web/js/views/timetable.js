@@ -164,7 +164,15 @@ function vertical({ columns, bands, start, end, busy, n, anchor }) {
 }
 
 // ---------------------------------------------------------------- phones: time across, rooms down
-function horizontal({ columns, bands, start, end, busy, n, anchor }) {
+/** Compact chips for plenaries outside the phone grid's window ("Before 11:30 · After 18:00"). */
+function outsideChips(before, after, start, end, n) {
+  const chip = t => `<button class="plen-chip${statusCls(t, n)}" data-id="${t.id}">${esc(t.title.replace(/\s*\(.*\)\s*$/, ''))}<span>${hhmm(t.s)}</span></button>`;
+  const group = (label, items) => (items.length ? `<span class="plen-when">${label}</span>${items.map(chip).join('')}` : '');
+  const html = group(`Before ${hhmm(start)}`, before) + group(`After ${hhmm(end)}`, after);
+  return html ? `<div class="tth-extra">${html}</div>` : '';
+}
+
+function horizontal({ columns, bands, start, end, busy, n, anchor, before = [], after = [] }) {
   const x = timeScale(start, end, busy, SCALE.horizontal);
   const width = x(end);
   let top = 0;
@@ -187,7 +195,7 @@ function horizontal({ columns, bands, start, end, busy, n, anchor }) {
   let lines = '';
   for (let m = start; m <= end; m += SLOT) {
     const half = m % 60 !== 0;
-    if (half && x.idle(m - SLOT)) continue;
+    if (half && m !== start && x.idle(m - SLOT)) continue;
     if (m > start && m < end) lines += `<div class="tth-line${half ? ' half' : ''}" style="left:${x(m)}px"></div>`;
     if (m < end) ruler += `<span class="tth-hour${half ? ' half' : ''}" style="left:${x(m)}px">${hhmm(m)}</span>`;
   }
@@ -207,7 +215,7 @@ function horizontal({ columns, bands, start, end, busy, n, anchor }) {
   }).join('');
 
   // Extra width so a late "now" can still scroll to the left edge.
-  return `<div class="tth" style="width:calc(${width + 24}px + 60vw)">
+  return `${outsideChips(before, after, start, end, n)}<div class="tth" style="width:calc(${width + 24}px + 60vw)">
       <div class="tth-ruler">${ruler}</div>
       <div class="tth-body" style="height:${top}px">
         <div class="tth-grid">${lines}</div>${plen}${rows}
@@ -224,7 +232,17 @@ export function renderTimetable(list, dayList, n, { horizontal: rotate = false }
   const columns = roomsAndTalks(talks, dayList);
   if (!columns.length) return '';
 
-  const [start, end] = timeWindow(talks.length ? talks : list, dayList, filtering);
+  let [start, end] = timeWindow(talks.length ? talks : list, dayList, filtering);
+  let before = [];
+  let after = [];
+  if (rotate && talks.length) {
+    // Phones: the grid spans only the talks; earlier/later plenaries become chips above it.
+    start = Math.floor(Math.min(...talks.map(t => t.s)) / SLOT) * SLOT;
+    end = Math.ceil(Math.max(...talks.map(t => t.e)) / SLOT) * SLOT;
+    before = bands.filter(t => t.e <= start);
+    after = bands.filter(t => t.s >= end);
+  }
+  const anchor = anchorMinute(dayList, n);
   const layout = {
     columns,
     bands: bands.filter(t => t.e > start && t.s < end),
@@ -232,7 +250,9 @@ export function renderTimetable(list, dayList, n, { horizontal: rotate = false }
     end,
     busy: busySlots(dayList),
     n,
-    anchor: anchorMinute(dayList, n),
+    anchor: anchor == null ? null : Math.min(Math.max(anchor, start), end),
+    before,
+    after,
   };
   return rotate ? horizontal(layout) : vertical(layout);
 }
