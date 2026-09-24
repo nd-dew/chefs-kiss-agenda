@@ -11,7 +11,7 @@ import { esc, highlighter, norm } from '../../web/js/lib/html.js';
 import { dur, hhmm, isLive, isPast, toMin, utcStamp } from '../../web/js/lib/time.js';
 import { classify, detectLanguage, optLabel, venueOf } from '../../web/js/taxonomy.js';
 import { conflictsOf } from '../../web/js/views/saved.js';
-import { lanes, PX_PER_MIN, PX_PER_MIN_EDGE, timeScale, timeWindow } from '../../web/js/views/timetable.js';
+import { busySlots, lanes, SCALE, timeScale, timeWindow } from '../../web/js/views/timetable.js';
 
 const raw = JSON.parse(readFileSync(new URL('../../web/data/agenda.json', import.meta.url)));
 const db = prepare(raw);
@@ -52,19 +52,31 @@ test('taxonomy folds tags into facets', () => {
 
 test('language detection prefers the title', () => {
   assert.equal(detectLanguage('Quoi de neuf dans Comptabilité ?', 'Discover what is new in the accounting app and how to use it.'), 'fr');
-  assert.equal(detectLanguage('Hoe de administratie van je business vereenvoudigen ?'), 'nl');
   assert.equal(detectLanguage('Stop Writing AI Prompts by Hand'), 'en');
   assert.equal(detectLanguage('Odoo Security 102'), 'en');
   const tagged = classify({ title: 'Pilotez votre restaurant', badges: ['English'] }, false);
   assert.deepEqual(tagged.langs, ['en']); // an explicit tag wins
 });
 
-test('timetable squeezes hours outside 10:00-18:00', () => {
-  const y = timeScale(7 * 60 + 30);
-  assert.equal(y(450), 0);
-  assert.equal(y(600), 150 * PX_PER_MIN_EDGE);
-  assert.equal(y(660), 150 * PX_PER_MIN_EDGE + 60 * PX_PER_MIN);
-  assert.equal(y(1140) - y(1080), 60 * PX_PER_MIN_EDGE);
+test('timetable squeezes half-hours without talks (morning, lunch, evening)', () => {
+  const { busy: B, idle: I } = SCALE.vertical;
+  const day = [session(600, 660), session(780, 810), session(420, 1380, { plenary: true })];
+  const busy = busySlots(day);
+  assert.deepEqual([...busy].sort((a, b) => a - b), [600, 630, 780]); // plenaries don't count
+  const y = timeScale(540, 840, busy, SCALE.vertical);
+  assert.equal(y(540), 0);
+  assert.equal(y(600), 60 * I); // 9:00-10:00 idle
+  assert.equal(y(660), 60 * I + 60 * B); // 10:00-11:00 busy
+  assert.equal(y(780) - y(660), 120 * I); // 11:00-13:00 idle, like a lunch break
+  assert.equal(y(795) - y(780), 15 * B); // mid-slot interpolation
+  assert.ok(y.idle(720) && !y.idle(780));
+});
+
+test('Real Friday lunch is squeezed', () => {
+  const friday = db.byDay.get('2026-09-25');
+  const lunch = friday.find(t => /lunch/i.test(t.title));
+  const busy = busySlots(friday);
+  assert.ok(!busy.has(lunch.s), 'no talk during lunch');
 });
 
 test('prepare indexes the real dataset', () => {

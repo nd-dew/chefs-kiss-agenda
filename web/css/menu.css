@@ -55,6 +55,7 @@
 .chip svg { width: 13px; height: 13px; color: var(--muted); }
 .chip .cnt { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
 .chip .dot { width: 7px; height: 7px; }
+.chip .flag { width: 18px; height: 12px; border-radius: 2px; box-shadow: 0 0 0 1px rgb(0 0 0 / .12); }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
 .chip.on svg, .chip.on .cnt { color: color-mix(in srgb, var(--accent-contrast) 75%, transparent); }
 .chip.zero { opacity: .45; }

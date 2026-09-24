@@ -41,7 +41,6 @@ export const LEVELS = [
 export const LANGS = [
   { id: 'en', label: 'English', tags: ['English'] },
   { id: 'fr', label: 'French', tags: ['French'] },
-  { id: 'nl', label: 'Dutch', tags: ['Dutch'] },
 ];
 
 export const FORMATS = [
@@ -81,7 +80,6 @@ export const trackOf = t => TRACKS.find(d => d.id === t.tracks[0]);
 const STOP_WORDS = {
   en: 'the and for with your how to of in is our you what why from this are can',
   fr: 'le la les de des du et pour avec vous votre vos une en dans est sur nos notre comment pourquoi au aux qui que quoi neuf sans plus ton ta tes je j l d ou',
-  nl: 'de het een en van voor met je jouw onze wat hoe is niet naar bij ook uw',
 };
 const STOP_SETS = Object.entries(STOP_WORDS).map(([lang, words]) => [lang, new Set(words.split(' '))]);
 const wordsOf = text => String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z]+/g) || [];

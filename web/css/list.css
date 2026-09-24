@@ -54,13 +54,17 @@
 .btns { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .hint {
-  margin: 14px 0 4px; padding: 10px 12px; border-radius: var(--radius);
-  background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 13px;
-  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin: 10px 0 2px; padding: 2px; color: var(--muted); font-size: 12.5px;
+  display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center;
 }
-.hint button { color: var(--accent); font-weight: 500; padding: 2px 6px; border-radius: 6px; }
+.hint button {
+  display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 12px;
+  color: var(--accent); font-weight: 500; background: var(--accent-soft);
+}
+.hint button b { font-weight: 700; }
+.hint button svg { width: 13px; height: 13px; }
 .hint button:hover { background: var(--accent-soft); }
-.tt-hint { position: sticky; left: 0; margin: 10px 16px 0; max-width: 700px; }
+.tt-hint { position: sticky; left: 0; padding: 0 16px 8px; }
 
 .empty { display: grid; place-items: center; text-align: center; padding: 80px 20px; color: var(--muted); }
 .empty svg { width: 36px; height: 36px; color: var(--faint); stroke-width: 1.4; margin-bottom: 12px; }

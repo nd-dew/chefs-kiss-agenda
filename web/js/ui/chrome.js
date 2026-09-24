@@ -14,7 +14,7 @@ const VIEW_TABS = [
   { id: 'list', icon: I.list, label: 'List', key: 'L' },
   { id: 'mine', icon: I.star, label: 'Saved', key: 'S' },
 ];
-const FLAG_ICONS = { en: I.flagGB, fr: I.flagFR, nl: I.flagNL };
+export const FLAG_ICONS = { en: I.flagGB, fr: I.flagFR };
 
 export function renderDays() {
   const today = now().date;

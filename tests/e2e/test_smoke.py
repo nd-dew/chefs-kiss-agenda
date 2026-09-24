@@ -123,3 +123,34 @@ def test_phone_defaults_to_list(browser, server):
     page.wait_for_selector('.slot')
     assert 'view=list' in page.url
     context.close()
+
+
+@pytest.fixture
+def phone(browser, server):
+    context = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True)
+    page = context.new_page()
+    page.goto(server + '/' + NOW + '#day=2026-09-24&view=grid')
+    page.wait_for_selector('.tth')
+    yield page
+    context.close()
+
+
+def test_phone_timetable_is_rotated_and_opens_at_now(phone):
+    assert phone.locator('.tt-gutter').count() == 0  # no left time column
+    assert phone.locator('.tth-row').count() >= 10
+    assert phone.evaluate("document.querySelector('#main').scrollLeft") > 0  # scrolled to 14:10
+    assert phone.locator('.topbar').bounding_box()['height'] <= 56  # one row
+
+
+def test_phone_search_opens_from_icon_and_lists_results(phone):
+    phone.tap('#search-btn')
+    phone.keyboard.type('payroll')
+    phone.wait_for_selector('.results')
+    phone.tap('#search-close')
+    assert phone.locator('.results').count() == 0
+
+
+def test_filter_change_animates_tiles(page):
+    page.click('[data-menu=filters]')
+    page.click('[data-chip="tracks|ai"]')
+    assert page.evaluate('document.getAnimations().length') > 0

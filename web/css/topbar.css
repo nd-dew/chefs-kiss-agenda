@@ -93,24 +93,25 @@ kbd {
   .ctl .lbl { display: none; }
   .day { padding: 0 8px; }
 }
-/* Phones: two compact rows — search + actions, then days + views */
+#search-btn, .search-close { display: none; }
+
+/* Phones: one row — days, a search icon (opens a full-width search field), filters,
+   timetable/list. Language lives in the Filters panel; theme follows the system. */
 @container app (max-width: 700px) {
-  .topbar {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'search controls theme' 'days days views';
-    height: auto; gap: 8px; padding: 8px 12px;
-  }
-  .brand { display: none; }
-  .search { grid-area: search; max-width: none; margin: 0; min-width: 0; }
-  .controls { grid-area: controls; }
-  #theme { grid-area: theme; }
-  .days { grid-area: days; min-width: 0; }
-  .day { flex: 1; justify-content: center; padding: 0 2px; font-size: 12.5px; }
-  .views { grid-area: views; }
-  .view-btn { padding: 0 7px; }
+  .topbar { height: 52px; gap: 6px; padding: 0 10px; }
+  .brand, #theme, .topbar .flags, .view-btn[data-view="mine"] { display: none; }
+  .days { flex: 1 1 auto; min-width: 0; }
+  .day { flex: 1; justify-content: center; padding: 0 4px; font-size: 12.5px; }
+  .view-btn { padding: 0 8px; }
   .ctl { padding: 0 9px; }
-  #theme { display: none; } /* phones follow the system theme */
-  .topbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'search controls' 'days views'; }
+  #search-btn { display: grid; position: relative; }
+  #search-btn.on::after { content: ''; position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .search { display: none; position: absolute; inset: 8px 10px; z-index: 5; max-width: none; margin: 0; background: var(--surface); border-color: var(--border-strong); }
+  .search kbd, .search input::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
+  .search-close { display: grid; place-items: center; width: 28px; height: 28px; margin-right: -4px; border-radius: 7px; color: var(--muted); }
+  .search-close svg { width: 16px; height: 16px; }
 }
+body.searching .search { display: flex; }
 
 /* Language flags: toggle any; none selected = every language */
 .flags { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-2); }

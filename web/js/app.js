@@ -22,7 +22,8 @@ import { renderList } from './views/list.js';
 import { renderResults } from './views/results.js';
 import { emptyState } from './views/parts.js';
 import { renderSaved } from './views/saved.js';
-import { renderTimetable } from './views/timetable.js';
+import { anchorMinute, renderTimetable } from './views/timetable.js';
+import { capture, play } from './lib/flip.js';
 
 const main = $('#main');
 const search = $('#q');
@@ -36,9 +37,11 @@ function renderMain(n) {
   if (state.q.trim()) {
     // Searching: the timetable stays while the day has hits; otherwise results widen automatically.
     const hits = visible.some(t => !t.plenary);
-    return state.view === 'grid' && hits ? renderTimetable(visible, dayList, n) : renderResults(n);
+    // (On phones results are always a list: matches would be scattered across the rotated grid.)
+    const grid = state.view === 'grid' && hits && !isPhone();
+    return grid ? renderTimetable(visible, dayList, n) : renderResults(n);
   }
-  const html = state.view === 'grid' ? renderTimetable(visible, dayList, n) : renderList(visible, n);
+  const html = state.view === 'grid' ? renderTimetable(visible, dayList, n, { horizontal: isPhone() }) : renderList(visible, n);
   return html || emptyState(n);
 }
 
@@ -48,8 +51,13 @@ function render() {
   renderDays();
   renderViews();
   renderControls();
+  $('#search-btn').classList.toggle('on', !!state.q.trim());
   renderActiveBar(dayCounts());
+  // Filter changes animate: surviving tiles slide into place, new ones fade in.
+  const before = state.animate && !state.scrollPending ? capture(main) : null;
+  state.animate = false;
   main.innerHTML = renderMain(n);
+  play(main, before);
   if (state.menu) renderMenu();
   if (state.scrollPending) {
     state.scrollPending = false;
@@ -58,16 +66,26 @@ function render() {
   writeHash();
 }
 
+/** Scroll to "now": the current time on today, the same time of day on other days. */
 function scrollToNow(instant = false) {
-  const behavior = instant ? 'auto' : 'smooth'; // opens at the current time on today's schedule
-  if (state.view === 'mine' || state.day !== now().date) {
-    if (instant) main.scrollTo({ top: 0, left: 0 });
-    return;
-  }
-  const target = state.view === 'grid'
-    ? $('.now-line', main)
-    : $('.slot[data-live]', main) || $('.slot:not([data-past])', main);
-  if (target) main.scrollTo({ top: Math.max(0, target.offsetTop - (state.view === 'grid' ? 110 : 6)), behavior });
+  const behavior = instant ? 'auto' : 'smooth';
+  const box = main.getBoundingClientRect();
+  const to = (el, { dx = 0, dy = 0 } = {}) => {
+    const r = el.getBoundingClientRect();
+    main.scrollTo({
+      top: dy == null ? main.scrollTop : Math.max(0, main.scrollTop + r.top - box.top - dy),
+      left: dx == null ? main.scrollLeft : Math.max(0, main.scrollLeft + r.left - box.left - dx),
+      behavior,
+    });
+  };
+  const anchor = $('.tt-anchor', main);
+  if (state.view === 'mine' || state.q.trim()) return main.scrollTo({ top: 0, left: 0, behavior });
+  if (anchor) return anchor.classList.contains('h') ? to(anchor, { dx: 48, dy: null }) : to(anchor, { dx: null, dy: 110 });
+  const minute = anchorMinute(db.byDay.get(state.day) || [], now());
+  const slots = [...main.querySelectorAll('.slot')];
+  // Today: what's live; other days: the talks running at this time of day.
+  const slot = $('.slot[data-live]', main) || slots.findLast(s => +s.dataset.slot <= minute) || slots[0];
+  if (slot) to(slot, { dx: null, dy: 6 });
 }
 
 // ---------------------------------------------------------------- actions
@@ -105,6 +123,7 @@ function setView(view) {
 
 function clearAll() {
   clearFilters();
+  state.animate = true;
   search.value = '';
   requestSemantic('');
   render();
@@ -115,6 +134,7 @@ function applyFilter(spec) {
   const value = rest.join(':');
   closeDrawer();
   state[facet] = new Set([value]);
+  state.animate = true;
   if (state.view === 'mine') state.view = state.lastView;
   render();
   toast(`Filtered by ${optLabel(facet, value)}`);
@@ -122,6 +142,7 @@ function applyFilter(spec) {
 
 function focusRoom(room) {
   state.rooms = state.rooms.size === 1 && state.rooms.has(room) ? new Set() : new Set([room]);
+  state.animate = true;
   render();
 }
 
@@ -173,6 +194,7 @@ function onClick(e) {
   if ((el = hit('data-menu'))) return openMenu(el.dataset.menu, el);
   if ((el = hit('data-flag'))) {
     state[el.dataset.flag] = !state[el.dataset.flag];
+    state.animate = true;
     return render();
   }
   if ((el = hit('data-day'))) return setDay(el.dataset.day);
@@ -189,6 +211,7 @@ function onEscape(e) {
     search.value = '';
     state.q = '';
     requestSemantic('');
+    document.body.classList.remove('searching');
     render();
   }
   if (isTyping()) document.activeElement.blur();
@@ -251,11 +274,27 @@ function bindEvents() {
   bindMenu();
   bindTheme();
 
+  // Phones: the search field opens from an icon and overlays the header row.
+  $('#search-btn').addEventListener('click', () => {
+    document.body.classList.add('searching');
+    search.focus();
+  });
+  $('#search-close').addEventListener('click', e => {
+    e.preventDefault(); // clears the search and closes the field
+    document.body.classList.remove('searching');
+    search.value = '';
+    state.q = '';
+    requestSemantic('');
+    search.blur();
+    render();
+  });
+
   let debounce;
   search.addEventListener('input', () => {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
       state.q = search.value;
+      state.animate = true;
       requestSemantic(state.q);
       render();
     }, 90);
@@ -268,9 +307,14 @@ function bindEvents() {
     state.scrollPending = true;
     render();
   });
+  let phone = isPhone();
   addEventListener('resize', () => {
     hidePop();
     if (state.menu && !isPhone()) closeMenu();
+    if (phone !== isPhone()) {
+      phone = isPhone(); // timetable rotates on phones
+      render();
+    }
   });
   // Keep the "live" state and the now-line fresh during the event.
   setInterval(() => {

@@ -1,4 +1,6 @@
-// Default view: rooms as columns, time flowing down, plenaries as full-width bands.
+// Timetable: rooms × time. Desktop has rooms as columns and time flowing down;
+// phones rotate it (time across, rooms stacked) since the screen is tall.
+// Half-hours without any talk (early welcome, lunch, evening concerts) are squeezed.
 
 import { db } from '../agenda.js';
 import { I } from '../icons.js';
@@ -8,28 +10,41 @@ import { isFiltering, state } from '../state.js';
 import { affTag, hl, otherDaysHint, starBtn, statusCls } from './parts.js';
 import { relatedHint } from './results.js';
 
-export const PX_PER_MIN = 2.2;
-// Before 10:00 and after 18:00 there are only plenaries (welcome, keynotes, dinner,
-// concerts), so those hours are drawn at a fraction of the height.
-export const CORE_HOURS = [10 * 60, 18 * 60];
-export const PX_PER_MIN_EDGE = 0.8;
+const SLOT = 30; // minutes
+export const SCALE = {
+  vertical: { busy: 2.2, idle: 0.8 }, // px per minute
+  horizontal: { busy: 4.4, idle: 1.2 },
+};
+const ROW = { label: 20, lane: 64, gap: 6 }; // horizontal layout, px
 
-/** Pixel offset of minute `m` from the top of the grid starting at `start`. */
-export function timeScale(start) {
-  const [from, to] = CORE_HOURS;
-  const px = m => {
-    const early = Math.min(m, from);
-    const core = Math.min(Math.max(m, from), to) - from;
-    const late = Math.max(m, to) - to;
-    return early * PX_PER_MIN_EDGE + core * PX_PER_MIN + late * PX_PER_MIN_EDGE;
-  };
-  return m => px(m) - px(start);
+/** Half-hour slots of the day that contain at least one talk (plenaries don't count). */
+export function busySlots(dayList) {
+  const busy = new Set();
+  for (const t of dayList) {
+    if (t.plenary) continue;
+    for (let m = Math.floor(t.s / SLOT) * SLOT; m < t.e; m += SLOT) busy.add(m);
+  }
+  return busy;
 }
 
-export const isCompressed = m => m < CORE_HOURS[0] || m >= CORE_HOURS[1];
+/** Map minutes to pixels from `start`, with idle half-hours drawn at the `idle` rate. */
+export function timeScale(start, end, busy, { busy: pxBusy, idle: pxIdle }) {
+  const offsets = new Map();
+  let at = 0;
+  for (let m = start; m <= end; m += SLOT) {
+    offsets.set(m, at);
+    at += SLOT * (busy.has(m) ? pxBusy : pxIdle);
+  }
+  const pos = m => {
+    const slot = Math.min(Math.max(Math.floor((m - start) / SLOT) * SLOT + start, start), end);
+    return offsets.get(slot) + (m - slot) * (busy.has(slot) ? pxBusy : pxIdle);
+  };
+  pos.idle = m => !busy.has(m);
+  return pos;
+}
 
 /**
- * Greedy lane assignment for overlapping sessions in one column.
+ * Greedy lane assignment for overlapping sessions in one room.
  * Returns Map(session -> { lane, n }) where n is the lane count of its overlap cluster.
  */
 export function lanes(sessions) {
@@ -66,81 +81,159 @@ export function timeWindow(visible, dayList, filtering) {
   ];
 }
 
-function sessionCard(t, n, top, height, lane) {
-  const pos = lane.n > 1
-    ? `left:calc(${(lane.lane / lane.n) * 100}% + 2px);right:auto;width:calc(${100 / lane.n}% - 4px);`
-    : '';
-  return `<article class="ev${height > 120 ? ' tall' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${top}px;height:${height}px;${pos}">
-    ${starBtn(t)}
-    <div class="ev-title">${hl(t.title)}</div>
-    ${t.name && height > 50 ? `<div class="ev-sub">${t.aff?.kind !== 'odoo' ? affTag(t, { short: true }) : ''}${hl(t.name)}</div>` : ''}
-    ${height > 110 ? `<div class="ev-when">${hhmm(t.s)} – ${hhmm(t.e)}${t.youtube_id ? ` ${I.play}` : ''}</div>` : ''}
-  </article>`;
+/** Minute to scroll to when opening a day: now on today, the same time of day elsewhere. */
+export function anchorMinute(dayList, n) {
+  const talks = dayList.filter(t => !t.plenary);
+  if (!talks.length) return null;
+  const first = Math.min(...talks.map(t => t.s));
+  const last = Math.max(...talks.map(t => t.s));
+  const conferenceStarted = n.date >= db.days[0]?.date;
+  return conferenceStarted ? Math.min(Math.max(n.min, first), last) : first;
 }
 
-export function renderTimetable(list, dayList, n) {
-  const bandsAll = list.filter(t => t.plenary);
-  const talks = list.filter(t => !t.plenary);
-  const filtering = isFiltering();
-  if (!talks.length && (filtering || !bandsAll.length)) return '';
+function cardInner(t, n, big) {
+  return `${starBtn(t)}
+    <div class="ev-title">${hl(t.title)}</div>
+    ${t.name ? `<div class="ev-sub">${t.aff?.kind !== 'odoo' ? affTag(t, { short: true }) : ''}${hl(t.name)}</div>` : ''}
+    ${big ? `<div class="ev-when">${hhmm(t.s)} – ${hhmm(t.e)}${t.youtube_id ? ` ${I.play}` : ''}</div>` : ''}`;
+}
 
+const bandTitle = t => `<div class="ev-title">${hl(t.title.replace(/\s*\(.*\)\s*$/, ''))}<span>${hhmm(t.s)}–${hhmm(t.e)}</span></div>`;
+const bandCls = (t, n) => `ev plen${/keynote/i.test(t.title) ? ' keynote' : ''}${statusCls(t, n)}`;
+
+/** Rooms to show, and the talks drawn in each (a talk shows in its first visible room). */
+function roomsAndTalks(talks, dayList) {
   const rooms = state.rooms.size
     ? db.rooms.filter(r => state.rooms.has(r) && dayList.some(t => !t.plenary && t.rooms.includes(r)))
     : db.rooms.filter(r => talks.some(t => t.rooms.includes(r)));
-  if (!rooms.length) return '';
+  const inRoom = r => talks.filter(t => t.rooms[0] === r || (t.rooms.includes(r) && !rooms.includes(t.rooms[0])));
+  return rooms.map(r => ({ room: r, talks: inRoom(r) }));
+}
 
-  const [start, end] = timeWindow(talks.length ? talks : list, dayList, filtering);
-  const y = timeScale(start);
+// ---------------------------------------------------------------- desktop: rooms across, time down
+function vertical({ columns, bands, start, end, busy, n, anchor }) {
+  const y = timeScale(start, end, busy, SCALE.vertical);
   const height = y(end);
-
-  // Hour labels + grid lines; compressed hours get hourly lines only and a tinted band.
   let gutter = '';
   let lines = '';
-  for (let m = start + 30; m <= end; m += 30) {
+  for (let m = start + SLOT; m <= end; m += SLOT) {
     const half = m % 60 !== 0;
-    if (half && isCompressed(m - 30)) continue;
+    if (half && y.idle(m - SLOT)) continue;
     if (m < end) lines += `<div class="tt-line${half ? ' half' : ''}" style="top:${y(m)}px"></div>`;
     gutter += `<div class="tt-hour${half ? ' half' : ''}" style="top:${y(m)}px">${hhmm(m)}</div>`;
   }
-  const [from, to] = CORE_HOURS;
-  const squeeze = (a, b) => (b > a ? `<div class="tt-squeeze" style="top:${y(a)}px;height:${y(b) - y(a)}px"></div>` : '');
-  lines += squeeze(start, Math.min(from, end)) + squeeze(Math.max(to, start), end);
-
-  const head = rooms.map((r, ci) => {
-    const focused = state.rooms.size === 1 && state.rooms.has(r);
-    return `<button class="tt-room ${focused ? 'focused' : ''}" style="grid-column:${ci + 2}" data-room="${esc(r)}" title="Show only ${esc(r)}">
-      <span class="rn">${esc(r)}</span><span class="rs">${plural(talks.filter(t => t.rooms.includes(r)).length, 'session')}</span></button>`;
-  }).join('');
-
-  const cols = rooms.map((r, ci) => {
-    // A session shows in its first room, or in the first visible one if that's filtered out.
-    const inCol = talks.filter(t => t.rooms[0] === r || (t.rooms.includes(r) && !rooms.includes(t.rooms[0])));
-    const layout = lanes(inCol);
-    const cards = inCol.map(t => sessionCard(t, n, y(t.s) + 1, y(t.e) - y(t.s) - 3, layout.get(t))).join('');
-    return `<div class="tt-col" style="grid-column:${ci + 2};height:${height}px">${cards}</div>`;
-  }).join('');
-
-  const bands = bandsAll.filter(t => t.e > start && t.s < end).map(t => {
-    const s = Math.max(t.s, start);
-    const e = Math.min(t.e, end);
-    return `<article class="ev plen${/keynote/i.test(t.title) ? ' keynote' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${y(s) + 1}px;height:${y(e) - y(s) - 2}px">
-      <div class="ev-title">${hl(t.title.replace(/\s*\(.*\)\s*$/, ''))}<span>${hhmm(t.s)}–${hhmm(t.e)}</span></div></article>`;
-  }).join('');
-
+  for (let m = start; m < end; m += SLOT) {
+    if (y.idle(m)) lines += `<div class="tt-squeeze" style="top:${y(m)}px;height:${y(m + SLOT) - y(m)}px"></div>`;
+  }
   // The now-line sits in the grid layer, under the cards, so it never crosses text.
-  const showNow = n.date === state.day && n.min >= start && n.min <= end;
-  if (showNow) {
+  if (n.date === state.day && n.min >= start && n.min <= end) {
     gutter += `<div class="now-tag" style="top:${y(n.min)}px">${hhmm(n.min)}</div>`;
     lines += `<div class="now-line" style="top:${y(n.min)}px"></div>`;
   }
+  if (anchor != null) lines += `<div class="tt-anchor" style="top:${y(anchor)}px"></div>`;
 
-  const hint = otherDaysHint(n, relatedHint(n, talks));
-  return `${hint ? `<div class="tt-hint">${hint}</div>` : ''}
-    <div class="tt" style="--cols:${rooms.length}">
+  const head = columns.map(({ room, talks }, ci) => {
+    const focused = state.rooms.size === 1 && state.rooms.has(room);
+    return `<button class="tt-room ${focused ? 'focused' : ''}" style="grid-column:${ci + 2}" data-room="${esc(room)}" title="Show only ${esc(room)}">
+      <span class="rn">${esc(room)}</span><span class="rs">${plural(talks.length, 'session')}</span></button>`;
+  }).join('');
+
+  const cols = columns.map(({ talks }, ci) => {
+    const layout = lanes(talks);
+    const cards = talks.map(t => {
+      const { lane, n: ln } = layout.get(t);
+      const h = y(t.e) - y(t.s) - 3;
+      const pos = ln > 1 ? `left:calc(${(lane / ln) * 100}% + 2px);right:auto;width:calc(${100 / ln}% - 4px);` : '';
+      return `<article class="ev${h > 120 ? ' tall' : ''}${h < 50 ? ' short' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${y(t.s) + 1}px;height:${h}px;${pos}">${cardInner(t, n, h > 110)}</article>`;
+    }).join('');
+    return `<div class="tt-col" style="grid-column:${ci + 2};height:${height}px">${cards}</div>`;
+  }).join('');
+
+  const plen = bands.map(t => {
+    const s = Math.max(t.s, start);
+    const e = Math.min(t.e, end);
+    return `<article class="${bandCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${y(s) + 1}px;height:${y(e) - y(s) - 2}px">${bandTitle(t)}</article>`;
+  }).join('');
+
+  return `<div class="tt" style="--cols:${columns.length}">
       <div class="tt-corner"></div>${head}
       <div class="tt-gutter" style="height:${height}px">${gutter}</div>
       <div class="tt-grid">${lines}</div>
       ${cols}
-      <div class="tt-layer">${bands}</div>
+      <div class="tt-layer">${plen}</div>
     </div>`;
+}
+
+// ---------------------------------------------------------------- phones: time across, rooms down
+function horizontal({ columns, bands, start, end, busy, n, anchor }) {
+  const x = timeScale(start, end, busy, SCALE.horizontal);
+  const width = x(end);
+  let top = 0;
+  const rows = columns.map(({ room, talks }) => {
+    const layout = lanes(talks);
+    const laneCount = Math.max(1, ...talks.map(t => layout.get(t).n));
+    const height = ROW.label + laneCount * ROW.lane + ROW.gap;
+    const cards = talks.map(t => {
+      const { lane } = layout.get(t);
+      const w = x(t.e) - x(t.s) - 3;
+      return `<article class="ev h${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="left:${x(t.s) + 1}px;width:${w}px;top:${ROW.label + lane * ROW.lane}px;height:${ROW.lane - 4}px">${cardInner(t, n, false)}</article>`;
+    }).join('');
+    const row = `<section class="tth-row" style="top:${top}px;height:${height}px">
+      <button class="tth-room" data-room="${esc(room)}">${esc(room)}<span>${talks.length}</span></button>${cards}</section>`;
+    top += height;
+    return row;
+  }).join('');
+
+  let ruler = '';
+  let lines = '';
+  for (let m = start; m <= end; m += SLOT) {
+    const half = m % 60 !== 0;
+    if (half && x.idle(m - SLOT)) continue;
+    if (m > start && m < end) lines += `<div class="tth-line${half ? ' half' : ''}" style="left:${x(m)}px"></div>`;
+    if (m < end) ruler += `<span class="tth-hour${half ? ' half' : ''}" style="left:${x(m)}px">${hhmm(m)}</span>`;
+  }
+  for (let m = start; m < end; m += SLOT) {
+    if (x.idle(m)) lines += `<div class="tth-squeeze" style="left:${x(m)}px;width:${x(m + SLOT) - x(m)}px"></div>`;
+  }
+  if (n.date === state.day && n.min >= start && n.min <= end) {
+    lines += `<div class="tth-now" style="left:${x(n.min)}px"></div>`;
+    ruler += `<span class="tth-now-tag" style="left:${x(n.min)}px">${hhmm(n.min)}</span>`;
+  }
+  if (anchor != null) lines += `<div class="tt-anchor h" style="left:${x(anchor)}px"></div>`;
+
+  const plen = bands.map(t => {
+    const s = Math.max(t.s, start);
+    const e = Math.min(t.e, end);
+    return `<article class="${bandCls(t, n)} h" data-id="${t.id}" tabindex="0" style="left:${x(s) + 1}px;width:${x(e) - x(s) - 2}px">${bandTitle(t)}</article>`;
+  }).join('');
+
+  return `<div class="tth" style="width:${width + 24}px">
+      <div class="tth-ruler">${ruler}</div>
+      <div class="tth-body" style="height:${top}px">
+        <div class="tth-grid">${lines}</div>${plen}${rows}
+      </div>
+    </div>`;
+}
+
+export function renderTimetable(list, dayList, n, { horizontal: rotate = false } = {}) {
+  const bands = list.filter(t => t.plenary);
+  const talks = list.filter(t => !t.plenary);
+  const filtering = isFiltering();
+  if (!talks.length && (filtering || !bands.length)) return '';
+
+  const columns = roomsAndTalks(talks, dayList);
+  if (!columns.length) return '';
+
+  const [start, end] = timeWindow(talks.length ? talks : list, dayList, filtering);
+  const layout = {
+    columns,
+    bands: bands.filter(t => t.e > start && t.s < end),
+    start,
+    end,
+    busy: busySlots(dayList),
+    n,
+    anchor: anchorMinute(dayList, n),
+  };
+  const hint = otherDaysHint(n, relatedHint(n, talks));
+  return `${hint ? `<div class="tt-hint">${hint}</div>` : ''}${rotate ? horizontal(layout) : vertical(layout)}`;
 }

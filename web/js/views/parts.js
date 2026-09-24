@@ -4,7 +4,7 @@ import { db, dayOf } from '../agenda.js';
 import { I } from '../icons.js';
 import { esc, highlighter } from '../lib/html.js';
 import { dur, hhmm, isLive, isPast } from '../lib/time.js';
-import { activeFilterCount, favs, passes, queryTerms, state } from '../state.js';
+import { favs, passes, queryTerms, state } from '../state.js';
 import { optLabel, trackOf } from '../taxonomy.js';
 
 /** Highlight the current search terms in a piece of text. */
@@ -85,16 +85,16 @@ export function rowHTML(t, n, { time = false, day = false, extra = '' } = {}) {
   </article>`;
 }
 
-/** "Also matching: 12 on Fri 25 …" when searching/filtering. */
+/** While searching: "Also on other days: Fri 25 (12) · Sat 26 (3)". */
 export function otherDaysHint(n, extra = '') {
-  if (!state.q && !activeFilterCount()) return '';
+  if (!state.q.trim()) return '';
   const terms = queryTerms();
   const parts = db.days.filter(d => d.date !== state.day).map(d => {
     const c = db.byDay.get(d.date).filter(t => (!t.plenary || terms.length) && passes(t, null, terms, n)).length;
-    return c ? `<button data-day="${d.date}">${c} on ${esc(d.short_label.replace(/ Sep/, ''))}</button>` : '';
+    return c ? `<button data-day="${d.date}">${esc(d.short_label.replace(/ Sep/, ''))} <b>${c}</b></button>` : '';
   }).filter(Boolean);
-  if (extra) parts.push(extra);
-  return parts.length ? `<div class="hint">Also: ${parts.join('')}</div>` : '';
+  const days = parts.length ? `<span>“${esc(state.q.trim())}” also on</span>${parts.join('')}` : '';
+  return days || extra ? `<div class="hint">${days}${extra}</div>` : '';
 }
 
 export const emptyState = n => `<div class="empty"><div>${I.search}<h3>No sessions match</h3>

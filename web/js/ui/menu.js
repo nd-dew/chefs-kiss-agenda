@@ -7,7 +7,8 @@ import { $, isPhone } from '../lib/dom.js';
 import { esc } from '../lib/html.js';
 import { now } from '../lib/time.js';
 import { dayCounts, FACETS, passes, queryTerms, state } from '../state.js';
-import { LEVELS, OTHER, SPEAKERS, TRACKS, venueOf } from '../taxonomy.js';
+import { LANGS, LEVELS, OTHER, SPEAKERS, TRACKS, venueOf } from '../taxonomy.js';
+import { FLAG_ICONS } from './chrome.js';
 
 const daySessions = () => (db.byDay.get(state.day) || []).filter(t => !t.plenary);
 
@@ -61,6 +62,11 @@ function roomSections() {
   }).join('');
 }
 
+function languageChips() {
+  const c = counts('langs');
+  return LANGS.map(l => chip('langs', l.id, l.label, c.get(l.id) || 0, FLAG_ICONS[l.id])).join('');
+}
+
 function toggle(flag, icon, label) {
   const on = state[flag];
   return `<button class="chip${on ? ' on' : ''}" aria-pressed="${on}" data-flag="${flag}">${icon}${label}</button>`;
@@ -73,6 +79,7 @@ function renderFilters() {
   return `<div class="menu-head"><h3>Filters</h3><span class="fp-count"><b>${shown}</b> of ${total} talks</span>
       <button data-act="clear-filters">Reset</button><button data-act="menu-close">Done</button></div>
     <div class="fp-body">
+      ${isPhone() ? section('Language', languageChips()) : '' /* desktop has flags in the header */}
       ${section('Speaker', chipsFor('speakers', SPEAKERS))}
       ${section('Topic', chipsFor('tracks', [...TRACKS, OTHER]))}
       ${section('Level', chipsFor('levels', LEVELS))}
@@ -123,6 +130,7 @@ export function toggleChip(spec) {
   const value = rest.join('|');
   const sel = state[facet];
   sel.has(value) ? sel.delete(value) : sel.add(value);
+  state.animate = true;
   emit('change');
 }
 
@@ -130,6 +138,7 @@ export function toggleRoomGroup(venue) {
   const rooms = db.rooms.filter(r => venueOf(r) === venue && presentValues('rooms')(r));
   const all = rooms.every(r => state.rooms.has(r));
   rooms.forEach(r => (all ? state.rooms.delete(r) : state.rooms.add(r)));
+  state.animate = true;
   emit('change');
 }
 

@@ -27,6 +27,7 @@ export const state = {
   menu: null, // open header panel ('filters')
   drawer: null, // id of the open session
   scrollPending: true, // scroll to "now" after the next render
+  animate: false, // animate tiles on the next render (filter changes)
 };
 
 // ---------------------------------------------------------------- saved sessions
