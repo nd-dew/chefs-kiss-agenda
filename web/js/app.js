@@ -35,7 +35,7 @@ function renderMain(n) {
   if (state.view === 'mine') return renderSaved(n);
   const dayList = db.byDay.get(state.day) || [];
   const visible = dayList.filter(t => passes(t, null, n));
-  const html = state.view === 'grid' ? renderTimetable(visible, dayList, n, { horizontal: isPhone() }) : renderList(visible, n);
+  const html = state.view === 'grid' ? renderTimetable(visible, dayList, n, { width: main.clientWidth }) : renderList(visible, n);
   return html || emptyState();
 }
 
@@ -74,7 +74,10 @@ function scrollToNow(instant = false) {
   };
   const anchor = $('.tt-anchor', main);
   if (state.view === 'mine' || state.q.trim()) return main.scrollTo({ top: 0, left: 0, behavior });
-  if (anchor) return anchor.classList.contains('h') ? to(anchor, { dx: 48, dy: null }) : to(anchor, { dx: null, dy: 110 });
+  if (anchor) {
+    if (instant) main.scrollTop = 0; // rooms from the top
+    return to(anchor, { dx: 48, dy: null });
+  }
   // The latest time slot that has started: the current talks today, the same time of day elsewhere.
   // (Not "the first live slot": a long session that began at 14:00 is still live at 17:50.)
   const minute = anchorMinute(db.byDay.get(state.day) || [], now());
@@ -321,15 +324,20 @@ function bindEvents() {
     state.scrollPending = true;
     render();
   });
-  let phone = isPhone();
   addEventListener('resize', () => {
     hidePop();
     if (state.menu && !isPhone()) closeMenu();
-    if (phone !== isPhone()) {
-      phone = isPhone(); // timetable rotates on phones
-      render();
-    }
   });
+  // The timetable stretches to the available width: re-flow when it changes
+  // (window resize, chat panel docked), keeping the scroll position.
+  let width = main.clientWidth;
+  let reflow;
+  new ResizeObserver(() => {
+    if (Math.abs(main.clientWidth - width) < 8 || state.view !== 'grid' || state.q.trim()) return;
+    width = main.clientWidth;
+    clearTimeout(reflow);
+    reflow = setTimeout(render, 120);
+  }).observe(main);
   // Keep the "live" state and the now-line fresh during the event.
   setInterval(() => {
     if (now().date === state.day && !state.menu) render();

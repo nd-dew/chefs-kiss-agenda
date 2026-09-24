@@ -1,20 +1,17 @@
-// Timetable: rooms × time. Desktop has rooms as columns and time flowing down;
-// phones rotate it (time across, rooms stacked) since the screen is tall.
-// Half-hours without any talk (early welcome, lunch, evening concerts) are squeezed.
+// Timetable: time runs across, rooms are stacked rows (on every screen size).
+// The grid spans only the talks; earlier/later plenaries become chips above it,
+// and half-hours without any talk (e.g. lunch) are squeezed.
 
 import { db } from '../agenda.js';
 import { I } from '../icons.js';
-import { esc, plural } from '../lib/html.js';
+import { esc } from '../lib/html.js';
 import { hhmm } from '../lib/time.js';
 import { isFiltering, state } from '../state.js';
 import { affTag, hl, starBtn, statusCls } from './parts.js';
 
 const SLOT = 30; // minutes
-export const SCALE = {
-  vertical: { busy: 2.2, idle: 0.8 }, // px per minute
-  horizontal: { busy: 5.2, idle: 1.2 },
-};
-const ROW = { label: 15, lane: 90, gap: 4 }; // horizontal layout, px
+export const SCALE = { busy: 5.2, idle: 1.2 }; // px per minute
+const ROW = { label: 15, lane: 90, gap: 4 }; // px
 
 /** Half-hour slots of the day that contain at least one talk (plenaries don't count). */
 export function busySlots(dayList) {
@@ -80,14 +77,13 @@ export function timeWindow(visible, dayList, filtering) {
   ];
 }
 
-/** Minute to scroll to when opening a day: now on today, the same time of day elsewhere. */
+/** Minute to scroll to when opening a day: now on today, the first talk on any other day. */
 export function anchorMinute(dayList, n) {
   const talks = dayList.filter(t => !t.plenary);
   if (!talks.length) return null;
   const first = Math.min(...talks.map(t => t.s));
   const last = Math.max(...talks.map(t => t.s));
-  const conferenceStarted = n.date >= db.days[0]?.date;
-  return conferenceStarted ? Math.min(Math.max(n.min, first), last) : first;
+  return talks[0].day === n.date ? Math.min(Math.max(n.min, first), last) : first;
 }
 
 function cardInner(t, n, big) {
@@ -109,62 +105,8 @@ function roomsAndTalks(talks, dayList) {
   return rooms.map(r => ({ room: r, talks: inRoom(r) }));
 }
 
-// ---------------------------------------------------------------- desktop: rooms across, time down
-function vertical({ columns, bands, start, end, busy, n, anchor }) {
-  const y = timeScale(start, end, busy, SCALE.vertical);
-  const height = y(end);
-  let gutter = '';
-  let lines = '';
-  for (let m = start + SLOT; m <= end; m += SLOT) {
-    const half = m % 60 !== 0;
-    if (half && y.idle(m - SLOT)) continue;
-    if (m < end) lines += `<div class="tt-line${half ? ' half' : ''}" style="top:${y(m)}px"></div>`;
-    gutter += `<div class="tt-hour${half ? ' half' : ''}" style="top:${y(m)}px">${hhmm(m)}</div>`;
-  }
-  for (let m = start; m < end; m += SLOT) {
-    if (y.idle(m)) lines += `<div class="tt-squeeze" style="top:${y(m)}px;height:${y(m + SLOT) - y(m)}px"></div>`;
-  }
-  // The now-line sits in the grid layer, under the cards, so it never crosses text.
-  if (n.date === state.day && n.min >= start && n.min <= end) {
-    gutter += `<div class="now-tag" style="top:${y(n.min)}px">${hhmm(n.min)}</div>`;
-    lines += `<div class="now-line" style="top:${y(n.min)}px"></div>`;
-  }
-  if (anchor != null) lines += `<div class="tt-anchor" style="top:${y(anchor)}px"></div>`;
-
-  const head = columns.map(({ room, talks }, ci) => {
-    const focused = state.rooms.size === 1 && state.rooms.has(room);
-    return `<button class="tt-room ${focused ? 'focused' : ''}" style="grid-column:${ci + 2}" data-room="${esc(room)}" title="Show only ${esc(room)}">
-      <span class="rn">${esc(room)}</span><span class="rs">${plural(talks.length, 'session')}</span></button>`;
-  }).join('');
-
-  const cols = columns.map(({ talks }, ci) => {
-    const layout = lanes(talks);
-    const cards = talks.map(t => {
-      const { lane, n: ln } = layout.get(t);
-      const h = y(t.e) - y(t.s) - 3;
-      const pos = ln > 1 ? `left:calc(${(lane / ln) * 100}% + 2px);right:auto;width:calc(${100 / ln}% - 4px);` : '';
-      return `<article class="ev${h > 120 ? ' tall' : ''}${h < 50 ? ' short' : ''}${statusCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${y(t.s) + 1}px;height:${h}px;${pos}">${cardInner(t, n, h > 110)}</article>`;
-    }).join('');
-    return `<div class="tt-col" style="grid-column:${ci + 2};height:${height}px">${cards}</div>`;
-  }).join('');
-
-  const plen = bands.map(t => {
-    const s = Math.max(t.s, start);
-    const e = Math.min(t.e, end);
-    return `<article class="${bandCls(t, n)}" data-id="${t.id}" tabindex="0" style="top:${y(s) + 1}px;height:${y(e) - y(s) - 2}px">${bandTitle(t)}</article>`;
-  }).join('');
-
-  return `<div class="tt" style="--cols:${columns.length}">
-      <div class="tt-corner"></div>${head}
-      <div class="tt-gutter" style="height:${height}px">${gutter}</div>
-      <div class="tt-grid">${lines}</div>
-      ${cols}
-      <div class="tt-layer">${plen}</div>
-    </div>`;
-}
-
-// ---------------------------------------------------------------- phones: time across, rooms down
-/** Compact chips for plenaries outside the phone grid's window ("Before 11:30 · After 18:00"). */
+// ---------------------------------------------------------------- layout: time across, rooms stacked
+/** Compact chips for plenaries outside the grid's window ("Before 11:30 · After 18:00"). */
 function outsideChips(before, after, start, end, n) {
   const chip = t => `<button class="plen-chip${statusCls(t, n)}" data-id="${t.id}">${esc(t.title.replace(/\s*\(.*\)\s*$/, ''))}<span>${hhmm(t.s)}</span></button>`;
   const group = (label, items) => (items.length ? `<span class="plen-when">${label}</span>${items.map(chip).join('')}` : '');
@@ -172,9 +114,18 @@ function outsideChips(before, after, start, end, n) {
   return html ? `<div class="tth-extra">${html}</div>` : '';
 }
 
-function horizontal({ columns, bands, start, end, busy, n, anchor, before = [], after = [] }) {
-  const x = timeScale(start, end, busy, SCALE.horizontal);
-  const width = x(end);
+/** Stretch the busy rate so the whole window fills `width` on wide screens (never below SCALE). */
+export function fitScale(start, end, busy, width) {
+  let busyMin = 0;
+  for (let m = start; m < end; m += SLOT) if (busy.has(m)) busyMin += SLOT;
+  const idleMin = end - start - busyMin;
+  const stretched = busyMin ? (width - idleMin * SCALE.idle) / busyMin : SCALE.busy;
+  return { busy: Math.max(SCALE.busy, stretched), idle: SCALE.idle };
+}
+
+function grid({ columns, bands, start, end, busy, n, anchor, width, before = [], after = [] }) {
+  const x = timeScale(start, end, busy, width ? fitScale(start, end, busy, width) : SCALE);
+  const gridWidth = x(end);
   let top = 0;
   const rows = columns.map(({ room, talks }) => {
     const layout = lanes(talks);
@@ -214,8 +165,7 @@ function horizontal({ columns, bands, start, end, busy, n, anchor, before = [], 
     return `<article class="${bandCls(t, n)} h" data-id="${t.id}" tabindex="0" style="left:${x(s) + 1}px;width:${x(e) - x(s) - 2}px">${bandTitle(t)}</article>`;
   }).join('');
 
-  // Extra width so a late "now" can still scroll to the left edge.
-  return `${outsideChips(before, after, start, end, n)}<div class="tth" style="width:calc(${width + 24}px + 60vw)">
+  return `${outsideChips(before, after, start, end, n)}<div class="tth" style="width:${gridWidth + 12}px">
       <div class="tth-ruler">${ruler}</div>
       <div class="tth-body" style="height:${top}px">
         <div class="tth-grid">${lines}</div>${plen}${rows}
@@ -223,7 +173,7 @@ function horizontal({ columns, bands, start, end, busy, n, anchor, before = [], 
     </div>`;
 }
 
-export function renderTimetable(list, dayList, n, { horizontal: rotate = false } = {}) {
+export function renderTimetable(list, dayList, n, { width = 0 } = {}) {
   const bands = list.filter(t => t.plenary);
   const talks = list.filter(t => !t.plenary);
   const filtering = isFiltering();
@@ -235,8 +185,8 @@ export function renderTimetable(list, dayList, n, { horizontal: rotate = false }
   let [start, end] = timeWindow(talks.length ? talks : list, dayList, filtering);
   let before = [];
   let after = [];
-  if (rotate && talks.length) {
-    // Phones: the grid spans only the talks; earlier/later plenaries become chips above it.
+  if (talks.length) {
+    // The grid spans only the talks; earlier/later plenaries become chips above it.
     start = Math.floor(Math.min(...talks.map(t => t.s)) / SLOT) * SLOT;
     end = Math.ceil(Math.max(...talks.map(t => t.e)) / SLOT) * SLOT;
     before = bands.filter(t => t.e <= start);
@@ -253,6 +203,7 @@ export function renderTimetable(list, dayList, n, { horizontal: rotate = false }
     anchor: anchor == null ? null : Math.min(Math.max(anchor, start), end),
     before,
     after,
+    width: width && width - 12,
   };
-  return rotate ? horizontal(layout) : vertical(layout);
+  return grid(layout);
 }

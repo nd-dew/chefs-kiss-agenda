@@ -1,7 +1,6 @@
 /* Responsive */
 
 @media (max-width: 640px) {
-  :root { --gutter: 46px; --colw: 150px; }
   body { font-size: 14px; }
   .activebar { padding: 6px 12px; }
   .acount { display: none; }
@@ -26,10 +25,6 @@
   }
   .dr-body { padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
   .dr-title { font-size: 19px; }
-  .tt-room { padding: 7px 8px; }
-  .tt-room .rn { font-size: 12px; }
-  .ev { padding: 5px 6px 5px 9px; }
-  .ev-title { font-size: 12px; }
 }
 @keyframes sheet { from { transform: translateY(100%); } }
 

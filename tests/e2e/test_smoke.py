@@ -28,7 +28,7 @@ def page(browser, server):
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('console', lambda m: m.type == 'error' and errors.append(m.text))
     page.goto(server + '/' + NOW + '#view=grid')
-    page.wait_for_selector('.tt-col .ev')
+    page.wait_for_selector('.tth-row .ev')
     yield page
     context.close()
     assert not errors, errors
@@ -45,12 +45,12 @@ def test_list_is_the_default_view(browser, server):
 
 def test_timetable(page):
     assert page.locator('.day[aria-selected="true"]').inner_text().strip() == 'Thu 24'
-    assert page.locator('.tt-room').count() >= 10
-    assert page.locator('.now-line').count() == 1
+    assert page.locator('.tth-row').count() >= 10
+    assert page.locator('.tth-now').count() == 1
 
 
 def test_hover_card_and_drawer(page):
-    card = page.locator('.tt-col .ev').nth(5)
+    card = page.locator('.tth-row .ev').nth(5)
     title = card.locator('.ev-title').inner_text()
     card.hover()
     page.wait_for_selector('#popover:not([hidden])')
@@ -67,24 +67,24 @@ def test_room_filter_and_url_state(page):
     page.click('[data-menu=filters]')
     page.click('[data-chip="rooms|Hall 6.A"]')
     page.keyboard.press('Escape')
-    assert page.locator('.tt-room').count() == 1
+    assert page.locator('.tth-row').count() == 1
     assert 'rooms=Hall+6.A' in page.url
     assert page.locator('.achip').count() == 1  # removable chip shows the active filter
     page.locator('.achip').click()
-    assert page.locator('.tt-room').count() > 1
+    assert page.locator('.tth-row').count() > 1
 
 
 def test_language_flags_toggle(page):
-    everything = page.locator('.tt-col .ev').count()
+    everything = page.locator('.tth-row .ev').count()
     page.click('.flag-btn[aria-label=French]')
     assert 'langs=fr' in page.url
-    french = page.locator('.tt-col .ev').count()
+    french = page.locator('.tth-row .ev').count()
     assert 0 < french < everything
     page.click('.flag-btn[aria-label=English]')  # flags combine
     assert 'langs=fr|en' in page.url or 'langs=en|fr' in page.url
     page.click('.flag-btn[aria-label=French]')
     page.click('.flag-btn[aria-label=English]')
-    assert page.locator('.tt-col .ev').count() == everything
+    assert page.locator('.tth-row .ev').count() == everything
 
 
 def test_filters_panel_is_minimal(page):
@@ -97,8 +97,8 @@ def test_speaker_filter_shows_external_talks(page):
     page.click('[data-menu=filters]')
     page.click('[data-chip="speakers|external"]')
     page.keyboard.press('Escape')
-    assert page.locator('.tt-col .ev').count() > 10
-    assert page.locator('.tt-col .ev .aff-odoo').count() == 0
+    assert page.locator('.tth-row .ev').count() > 10
+    assert page.locator('.tth-row .ev .aff-odoo').count() == 0
 
 
 def test_search_is_a_ranked_page_not_a_filter(page):
@@ -115,8 +115,8 @@ def test_search_is_a_ranked_page_not_a_filter(page):
 
 
 def test_star_and_saved_view(page):
-    page.locator('.tt-col .ev').first.hover()
-    page.locator('.tt-col .ev .star').first.click()
+    page.locator('.tth-row .ev').first.hover()
+    page.locator('.tth-row .ev .star').first.click()
     page.keyboard.press('s')
     assert page.locator('.mine-head h1').inner_text() == 'My schedule'
     assert page.locator('.row').count() == 1
@@ -197,3 +197,15 @@ def test_phone_grid_skips_empty_morning_and_evening(phone):
     assert first_hour == '11:30'  # Thursday's first talks, not the 07:30 welcome
     chips = phone.locator('.plen-chip').all_inner_texts()
     assert any('Keynote' in c for c in chips) and any('Concert' in c for c in chips)
+
+
+def test_other_day_opens_at_its_start(browser, server):
+    context = browser.new_context(viewport={'width': 1280, 'height': 800})
+    page = context.new_page()
+    page.goto(server + '/?now=2026-09-24T16:40#view=grid')
+    page.wait_for_selector('.tth-row .ev')
+    assert page.evaluate("document.querySelector('#main').scrollLeft") > 0  # today: at 16:40
+    page.click('[data-day="2026-09-25"]')
+    page.wait_for_timeout(300)
+    assert page.evaluate("document.querySelector('#main').scrollLeft") == 0  # Friday: from its first talk
+    context.close()

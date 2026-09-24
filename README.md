@@ -3,8 +3,10 @@
 A clean, fast explorer for the **Odoo Experience 2026** schedule (468 talks, Sep 24–26, Brussels Expo; the pre-event masterclass days are left out),
 with a timetable view, rich filtering, a personal schedule and a Gemini-powered assistant that knows every talk.
 
-- **Timetable** (default): rooms × time, sticky headers, keynotes/lunch as full-width bands, a live "now" line;
-  hours before 10:00 and after 18:00 (only welcome, keynotes, dinner and concerts) are squeezed
+- **Timetable**: time runs across and rooms are stacked rows (desktop and phone); the grid spans only the
+  talks and stretches to wide screens, early/late plenaries (welcome, keynote, dinner, concerts) are chips above
+  it, idle half-hours like lunch are squeezed, and a "now" line runs behind the cards. Today opens at now, other
+  days at their first talk
 - **List** (default on phones) and **Saved** views; overlap detection; Google Calendar / `.ics` export
 - **One-row header**: days, search, 🇬🇧 🇫🇷 🇳🇱 language flags (toggle any combination) and one **Filters** panel
   with just topic, level, room (grouped by venue), saved and hide past, all with live counts. Active filters show

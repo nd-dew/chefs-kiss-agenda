@@ -12,7 +12,7 @@ import { dur, hhmm, isLive, isPast, toMin, utcStamp } from '../../web/js/lib/tim
 import { classify, detectLanguage, optLabel, venueOf } from '../../web/js/taxonomy.js';
 import { queryWords, rank, withinOneEdit } from '../../web/js/rank.js';
 import { conflictsOf } from '../../web/js/views/saved.js';
-import { busySlots, lanes, SCALE, timeScale, timeWindow } from '../../web/js/views/timetable.js';
+import { busySlots, fitScale, lanes, SCALE, timeScale, timeWindow } from '../../web/js/views/timetable.js';
 
 const raw = JSON.parse(readFileSync(new URL('../../web/data/agenda.json', import.meta.url)));
 const db = prepare(raw);
@@ -60,17 +60,25 @@ test('language detection prefers the title', () => {
 });
 
 test('timetable squeezes half-hours without talks (morning, lunch, evening)', () => {
-  const { busy: B, idle: I } = SCALE.vertical;
+  const { busy: B, idle: I } = SCALE;
   const day = [session(600, 660), session(780, 810), session(420, 1380, { plenary: true })];
   const busy = busySlots(day);
   assert.deepEqual([...busy].sort((a, b) => a - b), [600, 630, 780]); // plenaries don't count
-  const y = timeScale(540, 840, busy, SCALE.vertical);
+  const y = timeScale(540, 840, busy, SCALE);
   assert.equal(y(540), 0);
   assert.equal(y(600), 60 * I); // 9:00-10:00 idle
   assert.equal(y(660), 60 * I + 60 * B); // 10:00-11:00 busy
   assert.equal(y(780) - y(660), 120 * I); // 11:00-13:00 idle, like a lunch break
   assert.equal(y(795) - y(780), 15 * B); // mid-slot interpolation
   assert.ok(y.idle(720) && !y.idle(780));
+});
+
+test('timetable stretches to wide screens but never below the base scale', () => {
+  const busy = new Set([600, 630]); // one busy hour, one idle hour
+  assert.equal(fitScale(600, 720, busy, 300).busy, SCALE.busy); // narrow: keep readable size
+  const wide = fitScale(600, 720, busy, 2000);
+  assert.ok(wide.busy > SCALE.busy);
+  assert.equal(timeScale(600, 720, busy, wide)(720), 2000);
 });
 
 test('Real Friday lunch is squeezed', () => {
